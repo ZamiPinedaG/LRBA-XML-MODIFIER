@@ -65,10 +65,10 @@ Verificar que archivo xml esta dentro del proyecto antes de iniciar.
 ```bash
 py lrba.py
 - Ingrese el nombre del archivo XML (con extensión): CR-COCTSUEVEC-T03.xml
-- ¿Desea modificar las etiquetas QUANTITATIVE? (s/n):
-- ¿Desea modificar las etiquetas DOMAIL? (s/n):
-- ¿Desea modificar las variables %%ODATE para agregar '..' de ser necesario? (s/n):
-- ¿Desea modificar solo jobs en especifico? (s/n): s
+- ¿Desea modificar las etiquetas QUANTITATIVE? (s/n): s
+- ¿Desea modificar las etiquetas DOMAIL? (s/n): s
+- ¿Desea modificar las variables %%ODATE para agregar '..' de ser necesario? (s/n): s
+- ¿Desea modificar solo jobs en especifico? (s/n): s s
 - Ingrese los últimos dos caracteres de los jobs a modificar, separados por comas (ej: 01,02,03): 22,23
 - Ingrese el ambiente (calidad/produccion): produccion
 ```
