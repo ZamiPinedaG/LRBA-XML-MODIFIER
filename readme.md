@@ -124,7 +124,4 @@ YYYY-MM-DD HH:MM:SS,ms - logger_name - SEVERITY_LEVEL - message
 
 ### `config.py`
 
-Este archivo define los **prefijos** y **variables por entorno**. Aquí es donde puedes personalizar los valores que el programa usará según el ambiente en el que se esté ejecutando (por ejemplo, prefijos diferentes para `calidad` o `producción`). 
-#   C o n t r o l - M - X M L - M o d i f i e r  
- #   L R B A - X M L - M O D I F I E R  
- 
+Este archivo define los **prefijos** y **variables por entorno**. Aquí es donde puedes personalizar los valores que el programa usará según el ambiente en el que se esté ejecutando (por ejemplo, prefijos diferentes para `calidad` o `producción`).
