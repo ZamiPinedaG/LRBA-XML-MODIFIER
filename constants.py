@@ -6,9 +6,27 @@ PREFIJO_DOF_CALIDAD = 'QOF'
 PREFIJO_DOF_PRODUCCION = 'GOF'
 PREFIJO_DOF_DESARROLLO = 'DOF'
 
+PREFIJOS_COB = [
+    PREFIJO_COBD_DESARROLLO,
+    PREFIJO_COBD_CALIDAD,
+    PREFIJO_COBD_PRODUCCION
+]
+
+PREFIJOS_OF = [
+    PREFIJO_DOF_DESARROLLO,
+    PREFIJO_DOF_CALIDAD,
+    PREFIJO_DOF_PRODUCCION
+]
+
 # Etiquetas ambiente
+DESARROLLO = 'desarrollo'
 CALIDAD = 'calidad'
 PRODUCCION = 'produccion'
+
+AMBIENTES_PREVIOS = [
+    DESARROLLO,
+    CALIDAD
+]
 
 # Etiquetas y contadores
 CONTADOR_MODIFICACIONES = 'modificaciones'
@@ -46,37 +64,51 @@ LRBA_CTM = "lrba-ctm"
 LRBA_CO_DEV = "LRBA_CO_DEV"
 LRBA_CO_DESA = "LRBA_CO_DESA"
 LRBA_CO_QA = "LRBA_CO_QA"
+LRBA_CO_AU = "LRBA_CO_AU"
+LRBA_CO_PROD = "LRBA_CO_PROD"
 VARD = 'D'
 VARC = 'C'
+VARP = 'P'
 DATAX_CTRLM = "datax-ctrlm"
+DATAX_CTRLMQ = "LCVWCOAXFT01S"
+DATAX_CTRLMP = "lcvpcoaxft00"
 VAR_LRBA1 = '%%NAMESPACES'
 VAR_LRBA2 = '%%namespace'
 VAR_DEV = '.dev'
+VAR_INT = '.int'
 VAR_AU = '.au'
 VAR_QA = '.qa'
+VAR_PROD = '.prod'
 
 AMB_PERMITIDO_LRBA = [
     VARC,
     VARD,
+    VARP
     # Puedes agregar más constantes aquí
 ]
 
 VARS_AMBIENTE = [
     VAR_DEV,
+    VAR_INT,
     VAR_AU,
-    VAR_QA
+    VAR_QA,
+    VAR_PROD
     # Puedes agregar más constantes aquí
 ]
 
 NODO_PERMITIDO_LRBA = [
     LRBA_CO_DESA,
     LRBA_CO_DEV,
-    LRBA_CO_QA
+    LRBA_CO_AU,
+    LRBA_CO_QA,
+    LRBA_CO_PROD
     # Puedes agregar más constantes aquí
 ]
 
 NODO_PERMITIDO_DATAX = [
-    DATAX_CTRLM
+    DATAX_CTRLM,
+    DATAX_CTRLMQ,
+    DATAX_CTRLMP
     # Puedes agregar más constantes aquí
 ]
 

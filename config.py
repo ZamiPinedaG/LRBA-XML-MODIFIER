@@ -1,6 +1,20 @@
 # config.py
+AMBIENTE_DESARROLLO = "desarrollo"
 AMBIENTE_CALIDAD = "calidad"
 AMBIENTE_PRODUCCION = "produccion"
+
+CONFIGURACION_DESARROLLO = {
+    "letra_cambio": 'D',
+    "nuevo_nodeid": 'datax-ctrlm',
+    "nuevo_nodeidlrba": 'LRBA_CO_DEV',
+    "nuevo_cmdline_ambiente": '.dev',
+    "nuevo_variable_ambiente": '.dev',
+    "nuevo_datacenter": 'Ctrlm_Desarrollo',
+    "output_file": 'output_dev.xml',
+    "nuevo_condicion": 'D',
+    "domail_destino": '',
+    "sub_app_ctrlm": '-CCR'
+}
 
 CONFIGURACION_CALIDAD = {
     "letra_cambio": 'C',
@@ -42,7 +56,7 @@ CONTADORES = {
 PREFIJOS_GRANDES = ['CCUGH', 'CCBTQ', 'CCBGH', 'CCBGU', 'CCTSU', 'CCMOL', 'CCPAN', 'CCZXH', 'CCBNT']
 PREFIJOS_PEQUENOS = ['CBTQ', 'CCOG']
 
-AMBIENTES = ["calidad", "produccion"]
+AMBIENTES = ["desarrollo", "calidad", "produccion"]
 
 PATRON_PREFIJOS_GRANDES = '|'.join(PREFIJOS_GRANDES)
 PATRON_PREFIJOS_PEQUENOS = '|'.join(PREFIJOS_PEQUENOS)

@@ -2,7 +2,7 @@
 import xml.etree.ElementTree as ET
 import re
 import constants
-from config import CONTADORES, AMBIENTES, AMBIENTE_CALIDAD, AMBIENTE_PRODUCCION, CONFIGURACION_CALIDAD, CONFIGURACION_PRODUCCION, PREFIJOS_PEQUENOS, PREFIJOS_GRANDES ,PATRON_PREFIJOS_GRANDES, PATRON_PREFIJOS_PEQUENOS
+from config import CONTADORES, AMBIENTES, AMBIENTE_DESARROLLO, AMBIENTE_CALIDAD, AMBIENTE_PRODUCCION, CONFIGURACION_DESARROLLO, CONFIGURACION_CALIDAD, CONFIGURACION_PRODUCCION, PREFIJOS_PEQUENOS, PREFIJOS_GRANDES ,PATRON_PREFIJOS_GRANDES, PATRON_PREFIJOS_PEQUENOS
 from logger_setup import setup_logger
 
 # Configuración de logger
@@ -53,7 +53,12 @@ def cargar_xml(archivo_xml):
     
 # Función para seleccionar configuración según ambiente
 def seleccionar_configuracion(ambiente):
-    return CONFIGURACION_CALIDAD if ambiente == AMBIENTE_CALIDAD else CONFIGURACION_PRODUCCION    
+    if ambiente == AMBIENTE_CALIDAD:
+        return CONFIGURACION_CALIDAD
+    elif ambiente == AMBIENTE_DESARROLLO:
+        return CONFIGURACION_DESARROLLO
+    elif ambiente == AMBIENTE_PRODUCCION:
+        return CONFIGURACION_PRODUCCION   
 
 # Función para modificar el folder
 def modificar_folder(root, nuevo_datacenter):
@@ -197,7 +202,7 @@ def modificar_quantitative(job, conf, ambiente, modificar_quantitative):
 
 # Función para crear etiqueta QUANTITATIVE
 def crear_quantitative(ambiente):
-    if ambiente == constants.CALIDAD:
+    if ambiente in constants.AMBIENTES_PREVIOS:
         return ET.Element("QUANTITATIVE", {
             "NAME": "MAX-LRA_BATCH-WORK-CO",
             "QUANT": "1",
@@ -217,19 +222,23 @@ def modificar_variable(variable, ambiente, modificar_odate, contadores):
     nuevo_value = value  # Inicializar el valor a modificar
     
     # Verifica si el VALUE comienza con COB o DOF
-    if value.startswith(constants.PREFIJO_COBD_DESARROLLO):
+    if value.startswith(tuple(constants.PREFIJOS_COB)):
         # Cambia el prefijo en calidad y producción
-        if ambiente == constants.CALIDAD:  # Suponiendo que 'ambiente' es una variable que define el ambiente
-            nuevo_value = constants.PREFIJO_COBD_CALIDAD + value[4:]  # Cambia COBD a COBQ
+        if ambiente == constants.DESARROLLO:
+            nuevo_value = constants.PREFIJO_COBD_DESARROLLO + value[4:]
+        elif ambiente == constants.CALIDAD:  # Suponiendo que 'ambiente' es una variable que define el ambiente
+            nuevo_value = constants.PREFIJO_COBD_CALIDAD + value[4:]  # Cambia COB
         elif ambiente == constants.PRODUCCION:
-            nuevo_value = constants.PREFIJO_COBD_PRODUCCION + value[4:]  # Cambia COBD a COBP
+            nuevo_value = constants.PREFIJO_COBD_PRODUCCION + value[4:]  # Cambia COB
 
-    elif value.startswith(constants.PREFIJO_DOF_DESARROLLO):
+    elif value.startswith(tuple(constants.PREFIJOS_OF)):
         # Cambia el prefijo en calidad y producción
-        if ambiente == constants.CALIDAD:
-            nuevo_value = constants.PREFIJO_DOF_CALIDAD + value[3:]  # Cambia DOF a QOF
+        if ambiente == constants.DESARROLLO:
+            nuevo_value = constants.PREFIJO_DOF_DESARROLLO + value[3:]
+        elif ambiente == constants.CALIDAD:
+            nuevo_value = constants.PREFIJO_DOF_CALIDAD + value[3:]  # Cambia OF
         elif ambiente == constants.PRODUCCION:
-            nuevo_value = constants.PREFIJO_DOF_PRODUCCION + value[3:]  # Cambia DOF a GOF
+            nuevo_value = constants.PREFIJO_DOF_PRODUCCION + value[3:]  # Cambia OF
 
     # Verifica si VALUE contiene %%ODATE
     if modificar_odate and '%%ODATE' in nuevo_value:
@@ -367,9 +376,9 @@ ambiente = ""
 
 # Bucle para solicitar la entrada hasta que sea válida
 while ambiente not in AMBIENTES:
-    ambiente = input("Ingrese el ambiente (calidad/produccion): ").lower()    
+    ambiente = input("Ingrese el ambiente (desarrollo/calidad/produccion): ").lower()    
     # Validar la entrada
     if ambiente not in AMBIENTES:
-        print("Error: Entrada no válida. Por favor, ingrese 'calidad' o 'produccion'.")
+        print("Error: Entrada no válida. Por favor, ingrese 'desarrollo', 'calidad' o 'produccion'.")
 # Usa la función para generar los archivos de calidad y producción
 modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modificar_odate, jobs_a_modificar)
