@@ -78,7 +78,7 @@ VAR_DEV = '.dev'
 VAR_INT = '.int'
 VAR_AU = '.au'
 VAR_QA = '.qa'
-VAR_PROD = '.prod'
+VAR_PROD = '.pro'
 
 AMB_PERMITIDO_LRBA = [
     VARC,

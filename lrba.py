@@ -106,6 +106,12 @@ def modificar_cmdline(job, conf):
             incrementar_contador(CONTADORES, constants.CONTADOR_CMDLINE)
             logger.debug(f'CMDLINE modificado de {cmdline} a {nuevo_cmdline}')
             return True
+        elif constants.VAR_PROD in namespace_part:
+            nuevo_cmdline = cmdline.replace(constants.VAR_PROD, conf["nuevo_cmdline_ambiente"])
+            job.set(constants.CMDLINE, nuevo_cmdline)
+            incrementar_contador(CONTADORES, constants.CONTADOR_CMDLINE)
+            logger.debug(f'CMDLINE modificado de {cmdline} a {nuevo_cmdline}')
+            return True
         else:
             # Si no está en CMDLINE, buscamos en las etiquetas VARIABLE
             for variable in job.findall(constants.VARIABLE):
@@ -125,6 +131,12 @@ def modificar_cmdline(job, conf):
                     break
                 elif name in constants.NODO_PERMITIDO_VAR_NAMESPACE and value and constants.VAR_QA in value:
                     nuevo_value = value.replace(constants.VAR_QA, conf["nuevo_variable_ambiente"])
+                    variable.set(constants.VALUE, nuevo_value)
+                    incrementar_contador(CONTADORES, constants.CONTADOR_NAMESPACE)
+                    logger.debug(f'VARIABLE modificado de {value} a {nuevo_value}')
+                    break
+                elif name in constants.NODO_PERMITIDO_VAR_NAMESPACE and value and constants.VAR_PROD in value:
+                    nuevo_value = value.replace(constants.VAR_PROD, conf["nuevo_variable_ambiente"])
                     variable.set(constants.VALUE, nuevo_value)
                     incrementar_contador(CONTADORES, constants.CONTADOR_NAMESPACE)
                     logger.debug(f'VARIABLE modificado de {value} a {nuevo_value}')
