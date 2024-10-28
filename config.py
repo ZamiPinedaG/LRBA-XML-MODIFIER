@@ -6,13 +6,13 @@ AMBIENTE_PRODUCCION = "produccion"
 CONFIGURACION_DESARROLLO = {
     "letra_cambio": 'D',
     "nuevo_nodeid": 'datax-ctrlm',
-    "nuevo_nodeidlrba": 'LRBA_CO_DEV',
+    "nuevo_nodeidlrba": 'LRBA_CO_DESA',
     "nuevo_cmdline_ambiente": '.dev',
     "nuevo_variable_ambiente": '.dev',
     "nuevo_datacenter": 'Ctrlm_Desarrollo',
     "output_file": 'output_dev.xml',
     "nuevo_condicion": 'D',
-    "domail_destino": '',
+    "domail_destino": '', # En desarrollo poner su correo para pruebas
     "sub_app_ctrlm": '-CCR'
 }
 
