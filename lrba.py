@@ -1,5 +1,6 @@
 # lrba.py
 import xml.etree.ElementTree as ET
+import xml.dom.minidom as MD
 import re
 import constants
 import argparse
@@ -19,9 +20,21 @@ def incrementar_contador(contador_dict, key):
         logger.error(f"Contador '{key}' no existe.")
 
 def main():
+    # Mostrar ejemplo de uso
+    ejemplo_uso_produccion = """
+    Ejemplo de ejecución Produccion:
+    py lrba.py --ambiente produccion --archivo-xml CR-COCBGHDIA-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs 01,02
+    """
+    ejemplo_uso_calidad = """
+    Ejemplo de ejecución Calidad:
+    py lrba.py --ambiente calidad --archivo-xml CR-COCBGHDIAC-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs 01,02
+    """
+    epilog_text = f"{ejemplo_uso_produccion} \n {ejemplo_uso_calidad}"
     # Inicializar el parser
     parser = argparse.ArgumentParser(
-        description="Script para transformar archivos XML de Control-M a diferentes ambientes."
+        description="Script para transformar archivos XML de Control-M a diferentes ambientes.",
+        epilog=epilog_text,
+        formatter_class=argparse.RawTextHelpFormatter
     )
     # Argumentos para definir el ambiente y archivo XML
     parser.add_argument(
@@ -29,29 +42,29 @@ def main():
         type=str,
         choices=AMBIENTES,
         required=True,
-        help="Especifica el ambiente de destino (desarrollo, calidad, producción)"
+        help="Especifica el ambiente de destino. Opciones: 'desarrollo', 'calidad' o 'produccion'."
     )
     parser.add_argument(
         '--archivo-xml',
         type=str,
         required=True,
-        help="Especifica el nombre del archivo XML (con extensión)"
+        help="Especifica el nombre del archivo XML que se va a modificar (incluye la extensión .xml)."
     )
     # Opciones de modificación
     parser.add_argument(
         '--modificar-quantitative',
         action='store_true',
-        help="Modifica/Agrega las etiquetas QUANTITATIVE en el archivo XML"
+        help="Modifica o agrega las etiquetas QUANTITATIVE en el archivo XML. Estas etiquetas se usan para controlar recursos y la cantidad de tareas simultáneas permitidas en LRBA."
     )
     parser.add_argument(
         '--modificar-domail',
         action='store_true',
-        help="Modifica las etiquetas DOMAIL en el archivo XML"
+        help="Modifica o agrega las etiquetas DOMAIL, que suelen indicar la configuración de dominio para un ambiente específico."
     )
     parser.add_argument(
         '--modificar-odate',
         action='store_true',
-        help="Modifica las variables %%ODATE en el archivo XML para agregar '..' de ser necesario"
+        help="Modifica las variables %%ODATE en el archivo XML, que representan fechas operativas, agregando '..' si es necesario."
     )
     parser.add_argument(
         '--modificar-jobs',
@@ -67,9 +80,27 @@ def main():
         jobs_a_modificar = [job.zfill(2) for job in jobs_a_modificar]
     else:
         jobs_a_modificar = None
+        
     # Mensaje de bienvenida
     logger.info("BIENVENIDO A LA TRANSFORMACIÓN DE MALLAS DE LRBA")
-    modificar_xml(args.archivo_xml, args.ambiente, args.modificar_quantitative, args.modificar_domail, args.modificar_odate, jobs_a_modificar)
+    logger.info(f"Ambiente seleccionado: {args.ambiente}")
+    logger.info(f"Archivo XML a modificar: {args.archivo_xml}")
+    if args.modificar_quantitative:
+        logger.info("Opción de modificación QUANTITATIVE activada.")
+    if args.modificar_domail:
+        logger.info("Opción de modificación DOMAIL activada.")
+    if args.modificar_odate:
+        logger.info("Opción de modificación ODATE activada.")
+    if jobs_a_modificar:
+        logger.info(f"Jobs específicos a modificar: {', '.join(jobs_a_modificar)}")
+    modificar_xml(
+        args.archivo_xml,
+        args.ambiente,
+        args.modificar_quantitative,
+        args.modificar_domail,
+        args.modificar_odate,
+        jobs_a_modificar
+    )
     
 def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modificar_odate, jobs_a_modificar):
     tree, root = cargar_xml(archivo_xml)
@@ -108,7 +139,7 @@ def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modif
         modificar_cmdline(job, conf)
 
         # Modificar la etiqueta ON y sus subetiquetas DOMAIL
-        modificar_domail_en_on(job, conf, modificar_domail, parent_folder, DOMAIL_SUBJECT, DOMAIL_MESSAGE)
+        modificar_domail_en_on(job, conf, ambiente, modificar_domail, parent_folder, DOMAIL_SUBJECT, DOMAIL_MESSAGE)
                         
         # Modificar INCOND
         inconds = job.findall(constants.INCOND)
@@ -127,8 +158,13 @@ def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modif
     for variable in root.findall(constants.VARIABLE):
         modificar_variable(variable, ambiente, modificar_odate, CONTADORES)
         
-    # Guarda el XML modificado con el nombre correspondiente
-    tree.write(parent_folder+'-generate.xml', encoding="utf-8", xml_declaration=True)
+    xml_str = ET.tostring(root, constants.VAR_UTF)
+    parsed_string = MD.parseString(xml_str)
+    pretty_xml_as_string = parsed_string.toprettyxml(indent="     ", encoding=constants.VAR_UTF).decode(constants.VAR_UTF)
+    pretty_xml_as_string = constants.VAR_BACK_SLASH.join([line for line in pretty_xml_as_string.splitlines() if line.strip()])
+    with open(parent_folder+'-generate.xml', constants.VAR_W, encoding=constants.VAR_UTF) as f:
+            f.write(pretty_xml_as_string)    
+    #tree.write(parent_folder+'-generate.xml', encoding="utf-8", xml_declaration=True)
     logger.info(f'Archivo modificado guardado como {parent_folder}-generate.xml')
     
     # Imprime los mensajes acumulados al final
@@ -270,16 +306,52 @@ def modificar_cmdline(job, conf):
     return False
 
 # Función para modificar DOMAIL
-def modificar_domail_en_on(job, conf, modificar_domail, parent_folder, subject, message):
+def modificar_domail_en_on(job, conf, ambiente, modificar_domail, parent_folder, subject, message):
     logger.info(f'modificar_domail: {modificar_domail} (tipo: {type(modificar_domail)})')
     if modificar_domail:
-        for on in job.findall(constants.ON):
-            for domail in on.findall(constants.DOMAIL):
-                domail.set(constants.VAR_DEST, conf["domail_destino"])
-                domail.set(constants.VAR_SUBJECT, subject)
-                domail.set(constants.VAR_MESSAGE, message)
-                incrementar_contador(CONTADORES, constants.CONTADOR_DOMAIL)
-                logger.debug(f'DOMAIL modificado: DEST="{domail.get("DEST")}", SUBJECT="{subject}", MESSAGE="{message}"')
+        on_tags = job.findall(constants.ON)
+        if not on_tags:
+            nueva_etiqueta = crear_domail(ambiente, conf["domail_destino"], subject, message)
+            # Insertar la nueva etiqueta ON después de la última etiqueta OUTCOND
+            job.append(nueva_etiqueta)
+            # Incrementar contador
+            incrementar_contador(CONTADORES, constants.CONTADOR_DOMAIL)
+            logger.debug(f'Etiqueta ON añadida al final del JOB con RUN_AS "lrba-ctm": {ET.tostring(nueva_etiqueta).decode()}')
+        else:
+            # Si existen etiquetas ON, modificar las etiquetas DOMAIL dentro de ellas
+            for on in on_tags:
+                for domail in on.findall(constants.DOMAIL):
+                    domail.set(constants.VAR_DEST, conf["domail_destino"])
+                    domail.set(constants.VAR_SUBJECT, subject)
+                    domail.set(constants.VAR_MESSAGE, message)
+                    incrementar_contador(CONTADORES, constants.CONTADOR_DOMAIL)
+                    logger.debug(f'DOMAIL modificado: DEST="{domail.get("DEST")}", SUBJECT="{subject}", MESSAGE="{message}"')
+
+def crear_domail(ambiente, conf, subject, message):
+    on_element = ET.Element("ON", {
+        "STMT": "*",
+        "CODE": "NOTOK"
+    })
+    # Crear la etiqueta QUANTITATIVE según el ambiente
+    if ambiente in constants.AMBIENTES_PREVIOS:
+        element = ET.Element("DOMAIL", {
+            "URGENCY": constants.VAR_URGENCY,
+            "DEST": conf,
+            "SUBJECT": subject,
+            "MESSAGE": message,
+            "ATTACH_SYSOUT": "Y"
+        })
+    elif ambiente == constants.PRODUCCION:
+        element = ET.Element("DOMAIL", {
+            "URGENCY": constants.VAR_URGENCY,
+            "DEST": conf,
+            "SUBJECT": subject,
+            "MESSAGE": message,
+            "ATTACH_SYSOUT": "Y"
+        })
+    # Agregar QUANTITATIVE a ON
+    on_element.append(element)
+    return on_element
 
 # Función para modificar INCOND y OUTCOND
 def modificar_condiciones(condiciones, letra_cambio, nuevo_condicion, patron_prefijos_grandes, patron_prefijos_pequeños):
@@ -430,5 +502,6 @@ def registrar_modificaciones(contadores):
     if contadores[constants.CONTADOR_QUAN] > 0:
         logger.warning(f'Total de QUANTITATIVE agregados: {contadores["quan"]}')
         logger.info(f'Para evitar errores en el formato, haz un "enter" después de cada etiqueta generada de QUANTITATIVE (Antes de la etiqueta OUTCOND)')
+
 if __name__ == "__main__":
     main()
