@@ -2,6 +2,8 @@
 import xml.etree.ElementTree as ET
 import re
 import constants
+import argparse
+from tabulate import tabulate
 from config import CONTADORES, AMBIENTES, AMBIENTE_DESARROLLO, AMBIENTE_CALIDAD, AMBIENTE_PRODUCCION, CONFIGURACION_DESARROLLO, CONFIGURACION_CALIDAD, CONFIGURACION_PRODUCCION, PREFIJOS_PEQUENOS, PREFIJOS_GRANDES ,PATRON_PREFIJOS_GRANDES, PATRON_PREFIJOS_PEQUENOS
 from logger_setup import setup_logger
 
@@ -17,24 +19,148 @@ def incrementar_contador(contador_dict, key):
     else:
         logger.error(f"Contador '{key}' no existe.")
 
+def main():
+    # Inicializar el parser
+    parser = argparse.ArgumentParser(
+        description="Script para transformar archivos XML de Control-M a diferentes ambientes."
+    )
+    # Argumentos para definir el ambiente y archivo XML
+    parser.add_argument(
+        '--ambiente',
+        type=str,
+        choices=AMBIENTES,
+        required=True,
+        help="Especifica el ambiente de destino (desarrollo, calidad, producción)"
+    )
+    parser.add_argument(
+        '--archivo-xml',
+        type=str,
+        required=True,
+        help="Especifica el nombre del archivo XML (con extensión)"
+    )
+    # Opciones de modificación
+    parser.add_argument(
+        '--modificar-quantitative',
+        action='store_true',
+        help="Modifica/Agrega las etiquetas QUANTITATIVE en el archivo XML"
+    )
+    parser.add_argument(
+        '--modificar-domail',
+        action='store_true',
+        help="Modifica las etiquetas DOMAIL en el archivo XML"
+    )
+    parser.add_argument(
+        '--modificar-odate',
+        action='store_true',
+        help="Modifica las variables %%ODATE en el archivo XML para agregar '..' de ser necesario"
+    )
+    parser.add_argument(
+        '--modificar-jobs',
+        type=str,
+        help="Modifica solo jobs específicos, proporcionando los últimos dos caracteres de los JOBNAME separados por comas (ej: 01,02,03)"
+    )
+    # Parsear los argumentos
+    args = parser.parse_args()
+    # Extraer la lista de jobs a modificar si se especifica el argumento
+    if args.modificar_jobs:
+        jobs_a_modificar = args.modificar_jobs.split(',')
+        # Asegurar que cada job tenga dos dígitos
+        jobs_a_modificar = [job.zfill(2) for job in jobs_a_modificar]
+    else:
+        jobs_a_modificar = None
+    # Mensaje de bienvenida
+    logger.info("BIENVENIDO A LA TRANSFORMACIÓN DE MALLAS DE LRBA")
+    modificar_xml(args.archivo_xml, args.ambiente, args.modificar_quantitative, args.modificar_domail, args.modificar_odate, jobs_a_modificar)
+    
+def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modificar_odate, jobs_a_modificar):
+    tree, root = cargar_xml(archivo_xml)
+    if root is None:
+        return
+    conf = seleccionar_configuracion(ambiente)
+    # Inicializamos un contador para las modificaciones de JOBNAME/QUANTITATIVE
+
+    modificar_folder(root, conf["nuevo_datacenter"])
+    # Recorremos cada etiqueta JOB
+    for job in root.findall(constants.JOB):
+        jobname = job.get(constants.JOBNAME)
+        run_as = job.get(constants.RUN_AS)
+        parent_folder = job.get(constants.PARENT_FOLDER)
+        application = job.get(constants.APPLICATION)
+        sub_application = job.get(constants.SUB_APPLICATION)
+        
+        # Constantes para patrones de email
+        DOMAIL_SUBJECT = 'Error %%JOBNAME - %%$ODATE M malla ' + parent_folder
+        DOMAIL_MESSAGE = '0051Error %%JOBNAME - %%$ODATE M malla ' + parent_folder
+        logger.info(f'{jobs_a_modificar}')
+        # Si se proporcionó una lista de jobs específicos, filtrar por los últimos dos caracteres de JOBNAME
+        if jobs_a_modificar and jobname[-2:] not in jobs_a_modificar:
+            continue
+        # Modifica JOBNAME
+        nuevo_jobname = modificar_jobname(jobname, conf["letra_cambio"], PREFIJOS_GRANDES, PREFIJOS_PEQUENOS)
+        if nuevo_jobname != jobname:
+            job.set(constants.JOBNAME, nuevo_jobname)
+            incrementar_contador(CONTADORES, constants.CONTADOR_MODIFICACIONES)
+            logger.debug(f'JOBNAME modificado de "{jobname}" a "{nuevo_jobname}"')
+            
+        # Modifica NODEID (cambiar a los valores dependiendo del ambiente)
+        modificar_nodeid(job, conf)
+
+        # Modifica CMDLINE (cambiar .dev por .au o .prod dependiendo del ambiente)
+        modificar_cmdline(job, conf)
+
+        # Modificar la etiqueta ON y sus subetiquetas DOMAIL
+        modificar_domail_en_on(job, conf, modificar_domail, parent_folder, DOMAIL_SUBJECT, DOMAIL_MESSAGE)
+                        
+        # Modificar INCOND
+        inconds = job.findall(constants.INCOND)
+        modificar_condiciones(inconds, conf["letra_cambio"], conf["nuevo_condicion"], '|'.join(PREFIJOS_GRANDES), '|'.join(PREFIJOS_PEQUENOS))
+        
+        # Modificar OUTCOND
+        outconds = job.findall(constants.OUTCOND)
+        modificar_condiciones(outconds, conf["letra_cambio"], conf["nuevo_condicion"], '|'.join(PREFIJOS_GRANDES), '|'.join(PREFIJOS_PEQUENOS))
+        
+        # Comprobar si RUN_AS es igual a "lrba-ctm"
+        modificar_quantitative(job, conf, ambiente, modificar_quan)
+        
+        # Modificar SUB_APPLICATION
+        procesar_application(job, conf)
+    
+    for variable in root.findall(constants.VARIABLE):
+        modificar_variable(variable, ambiente, modificar_odate, CONTADORES)
+        
+    # Guarda el XML modificado con el nombre correspondiente
+    tree.write(parent_folder+'-generate.xml', encoding="utf-8", xml_declaration=True)
+    logger.info(f'Archivo modificado guardado como {parent_folder}-generate.xml')
+    
+    # Imprime los mensajes acumulados al final
+    for mensaje in mensajes:
+        logger.info(f'mensaje')
+    # Muestra la cantidad de JOBNAME modificados
+    registrar_modificaciones(CONTADORES)
+
 def modificar_jobname(jobname, letra_cambio, prefijos_grandes, prefijos_pequeños):
     # Crea las expresiones regulares una vez
     patron_prefijos_grandes = '|'.join(prefijos_grandes)
     patron_prefijos_pequeños = '|'.join(prefijos_pequeños)
-
+    
+    logger.info(f"Modificando JOBNAME: '{jobname}'")
+    
     # Modifica el JOBNAME basado en prefijos grandes
     if re.match(r'^(' + PATRON_PREFIJOS_GRANDES + ').*', jobname):
         if len(jobname) > 6 and jobname[6] in constants.AMB_PERMITIDO_LRBA:
             nuevo_jobname = jobname[:6] + letra_cambio + jobname[7:]
+            logger.info(f"JOBNAME modificado (prefijos grandes, posición 6): '{nuevo_jobname}'")
             return nuevo_jobname
         elif len(jobname) > 6 and jobname[7] in constants.AMB_PERMITIDO_LRBA:
             nuevo_jobname = jobname[:7] + letra_cambio + jobname[8:]
+            logger.info(f"JOBNAME modificado (prefijos grandes, posición 7): '{nuevo_jobname}'")
             return nuevo_jobname
 
     # Modifica el JOBNAME basado en prefijos pequeños
     elif re.match(r'^(' + PATRON_PREFIJOS_PEQUENOS + ').*', jobname):
         if len(jobname) > 5 and jobname[5] in constants.AMB_PERMITIDO_LRBA:
             nuevo_jobname = jobname[:5] + letra_cambio + jobname[6:]
+            logger.info(f"JOBNAME modificado (prefijos pequeños, posición 5): '{nuevo_jobname}'")
             return nuevo_jobname
     
     return jobname  # Si no se hace ninguna modificación, devolver el original
@@ -146,6 +272,7 @@ def modificar_cmdline(job, conf):
 
 # Función para modificar DOMAIL
 def modificar_domail_en_on(job, conf, modificar_domail, parent_folder, subject, message):
+    logger.info(f'modificar_domail: {modificar_domail} (tipo: {type(modificar_domail)})')
     if modificar_domail:
         for on in job.findall(constants.ON):
             for domail in on.findall(constants.DOMAIL):
@@ -287,110 +414,37 @@ def procesar_application(job, conf):
     else:
         logger.debug(f'SUB_APPLICATION no modificado para job {job.get(constants.JOBNAME)} ya que no contiene "-CO-"')
 
-
 def registrar_modificaciones(contadores):
+    # Lista de registros para las modificaciones
+    registros = []
     if contadores[constants.CONTADOR_MODIFICACIONES] > 0:
+        registros.append(["JOBNAME", contadores["modificaciones"]])
         logger.warning(f'Total de JOBNAME modificados: {contadores["modificaciones"]}')
     if contadores[constants.CONTADOR_NODEID] > 0:
+        registros.append(["NODEID", contadores["nodeid"]])
         logger.warning(f'Total de NODEID modificados: {contadores["nodeid"]}')
     if contadores[constants.CONTADOR_CMDLINE] > 0:
+        registros.append(["CMDLINE--namespace", contadores["cmdline"]])
         logger.warning(f'Total de CMDLINE--namespace modificados: {contadores["cmdline"]}')
     if contadores[constants.CONTADOR_NAMESPACE] > 0:
+        registros.append(["VARIABLES%%namespace", contadores["namespace"]])
         logger.warning(f'Total de VARIABLES%%namespace modificados: {contadores["namespace"]}')
     if contadores[constants.CONTADOR_DOMAIL] > 0:
+        registros.append(["DOMAIL", contadores["domail"]])   
         logger.warning(f'Total de DOMAIL modificados/agregados: {contadores["domail"]}')    
     if contadores[constants.CONTADOR_ODATE] > 0:
+        registros.append(["%%ODATE", contadores["odate"]]) 
         logger.warning(f'Total de %%ODATE modificados: {contadores["odate"]}')        
     if contadores[constants.CONTADOR_QUAN] > 0:
+        registros.append(["QUANTITATIVE", contadores["quan"]])
         logger.warning(f'Total de QUANTITATIVE agregados: {contadores["quan"]}')
         logger.info(f'Para evitar errores en el formato, haz un "enter" después de cada etiqueta generada de QUANTITATIVE (Antes de la etiqueta OUTCOND)')
-
-def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modificar_odate, jobs_a_modificar):
-    tree, root = cargar_xml(archivo_xml)
-    if root is None:
-        return
-    conf = seleccionar_configuracion(ambiente)
-    # Inicializamos un contador para las modificaciones de JOBNAME/QUANTITATIVE
-
-    modificar_folder(root, conf["nuevo_datacenter"])
-    # Recorremos cada etiqueta JOB
-    for job in root.findall(constants.JOB):
-        jobname = job.get(constants.JOBNAME)
-        run_as = job.get(constants.RUN_AS)
-        parent_folder = job.get(constants.PARENT_FOLDER)
-        application = job.get(constants.APPLICATION)
-        sub_application = job.get(constants.SUB_APPLICATION)
-        
-        # Constantes para patrones de email
-        DOMAIL_SUBJECT = 'Error %%JOBNAME - %%$ODATE M malla ' + parent_folder
-        DOMAIL_MESSAGE = '0051Error %%JOBNAME - %%$ODATE M malla ' + parent_folder
-
-        # Si se proporcionó una lista de jobs específicos, filtrar por los últimos dos caracteres de JOBNAME
-        if jobs_a_modificar and jobname[-2:] not in jobs_a_modificar:
-            continue
-        # Modifica JOBNAME
-        nuevo_jobname = modificar_jobname(jobname, conf["letra_cambio"], PREFIJOS_GRANDES, PREFIJOS_PEQUENOS)
-        if nuevo_jobname != jobname:
-            job.set(constants.JOBNAME, nuevo_jobname)
-            incrementar_contador(CONTADORES, constants.CONTADOR_MODIFICACIONES)
-            logger.debug(f'JOBNAME modificado de "{jobname}" a "{nuevo_jobname}"')
-            
-        # Modifica NODEID (cambiar a los valores dependiendo del ambiente)
-        modificar_nodeid(job, conf)
-
-        # Modifica CMDLINE (cambiar .dev por .au o .prod dependiendo del ambiente)
-        modificar_cmdline(job, conf)
-
-        # Modificar la etiqueta ON y sus subetiquetas DOMAIL
-        modificar_domail_en_on(job, conf, modificar_domail, parent_folder, DOMAIL_SUBJECT, DOMAIL_MESSAGE)
-                        
-        # Modificar INCOND
-        inconds = job.findall(constants.INCOND)
-        modificar_condiciones(inconds, conf["letra_cambio"], conf["nuevo_condicion"], '|'.join(PREFIJOS_GRANDES), '|'.join(PREFIJOS_PEQUENOS))
-        
-        # Modificar OUTCOND
-        outconds = job.findall(constants.OUTCOND)
-        modificar_condiciones(outconds, conf["letra_cambio"], conf["nuevo_condicion"], '|'.join(PREFIJOS_GRANDES), '|'.join(PREFIJOS_PEQUENOS))
-        
-        # Comprobar si RUN_AS es igual a "lrba-ctm"
-        modificar_quantitative(job, conf, ambiente, modificar_quan)
-        
-        # Modificar SUB_APPLICATION
-        procesar_application(job, conf)
-    
-    for variable in root.findall(constants.VARIABLE):
-        modificar_variable(variable, ambiente, modificar_odate, CONTADORES)
-        
-    # Guarda el XML modificado con el nombre correspondiente
-    tree.write(parent_folder+'-generate.xml', encoding="utf-8", xml_declaration=True)
-    logger.info(f'Archivo modificado guardado como {parent_folder}-generate.xml')
-    
-    # Imprime los mensajes acumulados al final
-    for mensaje in mensajes:
-        logger.info(f'mensaje')
-    # Muestra la cantidad de JOBNAME modificados
-    registrar_modificaciones(CONTADORES)
-# Pide nombre del archivo XML por consola
-logger.info("BIENVENIDO A LA TRANSFORMACIÓN DE MALLAS DE LRBA")
-archivo_xml = input("Ingrese el nombre del archivo XML (con extensión): ")
-# Preguntar si se desea modificar los QUANTITATIVE y DOMAIL
-modificar_quan = input("¿Desea modificar las etiquetas QUANTITATIVE? (s/n): ").lower() == 's'
-modificar_domail = input("¿Desea modificar las etiquetas DOMAIL? (s/n): ").lower() == 's'
-modificar_odate = input("¿Desea modificar las variables %%ODATE para agregar '..' de ser necesario? (s/n): ").lower() == 's'
-modificar_jobs = input("¿Desea modificar solo jobs en especifico? (s/n): ").lower() == 's'
-# Si se desean modificar solo jobs específicos, solicitar los últimos dos caracteres de los JOBNAME
-jobs_a_modificar = None
-if modificar_jobs:
-    jobs_a_modificar = input("Ingrese los últimos dos caracteres de los jobs a modificar, separados por comas (ej: 01,02,03): ").split(',')
-# Pide el ambiente (calidad o producción)
-# Inicializar la variable ambiente
-ambiente = ""
-
-# Bucle para solicitar la entrada hasta que sea válida
-while ambiente not in AMBIENTES:
-    ambiente = input("Ingrese el ambiente (desarrollo/calidad/produccion): ").lower()    
-    # Validar la entrada
-    if ambiente not in AMBIENTES:
-        print("Error: Entrada no válida. Por favor, ingrese 'desarrollo', 'calidad' o 'produccion'.")
-# Usa la función para generar los archivos de calidad y producción
-modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modificar_odate, jobs_a_modificar)
+    # Solo registrar si hay modificaciones
+    if registros:
+        # Usar tabulate para mostrar los registros
+        tabla = tabulate(registros, headers=["Modificación", "Cantidad"], tablefmt="pretty")
+        logger.warning(f"Resumen de modificaciones:\n{tabla}")
+    else:
+        logger.info("No se realizaron modificaciones.")
+if __name__ == "__main__":
+    main()
