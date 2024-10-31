@@ -42,6 +42,7 @@ CONTADOR_DOMAIL_M = 'domailm'
 CONTADOR_ODATE = 'odate'
 CONTADOR_QUAN = 'quan'
 CONTADOR_QUAN_M = 'quanm'
+CONTADOR_SUBAPP = 'subapp'
 
 # Etiquietas Control-M
 INCOND = './INCOND'

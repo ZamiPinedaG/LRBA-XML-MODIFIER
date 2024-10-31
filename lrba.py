@@ -83,7 +83,7 @@ def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modif
         if jobs_a_modificar and jobname[-2:] not in jobs_a_modificar:
             continue
         # Modifica JOBNAME
-        nuevo_jobname = modificar_jobname(jobname, conf["letra_cambio"], PREFIJOS_GRANDES, PREFIJOS_PEQUENOS)
+        nuevo_jobname = modificar_jobname(jobname, conf["letra_cambio"], PREFIJOS_GRANDES, PREFIJOS_PEQUENOS, constants.AMB_PERMITIDO_LRBA)
         if nuevo_jobname != jobname:
             job.set(constants.JOBNAME, nuevo_jobname)
             incrementar_contador(CONTADORES, constants.CONTADOR_MODIFICACIONES)
@@ -103,7 +103,7 @@ def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modif
         # Comprobar si RUN_AS es igual a "lrba-ctm"
         modificar_quantitative(job, conf, ambiente, modificar_quan)
         # Modificar SUB_APPLICATION
-        procesar_application(job, conf)
+        procesar_application(job, conf, CONTADORES)
     
     for variable in root.findall(constants.VARIABLE):
         modificar_variable(variable, ambiente, modificar_odate, CONTADORES)
@@ -123,32 +123,25 @@ def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modif
     # Muestra la cantidad de JOBNAME modificados
     registrar_modificaciones(CONTADORES)
 
-def modificar_jobname(jobname, letra_cambio, prefijos_grandes, prefijos_pequeños):
-    # Crea las expresiones regulares una vez
-    patron_prefijos_grandes = '|'.join(prefijos_grandes)
-    patron_prefijos_pequeños = '|'.join(prefijos_pequeños)
-    
+def modificar_jobname(jobname, letra_cambio, prefijos_grandes, prefijos_pequenos, amb_permitido):
+    # Compilar patrones una vez
+    patron_prefijos_grandes = re.compile(r'^(' + '|'.join(prefijos_grandes) + r').*')
+    patron_prefijos_pequenos = re.compile(r'^(' + '|'.join(prefijos_pequenos) + r').*')
+    def modificar_si_permitido(posicion):
+        if len(jobname) > posicion and jobname[posicion] in amb_permitido:
+            nuevo_jobname = jobname[:posicion] + letra_cambio + jobname[posicion+1:]
+            logger.info(f"JOBNAME modificado en posición {posicion}: '{nuevo_jobname}'")
+            return nuevo_jobname
+        return None
     logger.info(f"Modificando JOBNAME: '{jobname}'")
+    # Modificación para prefijos grandes
+    if patron_prefijos_grandes.match(jobname):
+        return modificar_si_permitido(6) or modificar_si_permitido(7) or jobname
+    # Modificación para prefijos pequeños
+    elif patron_prefijos_pequenos.match(jobname):
+        return modificar_si_permitido(5) or jobname
     
-    # Modifica el JOBNAME basado en prefijos grandes
-    if re.match(r'^(' + PATRON_PREFIJOS_GRANDES + ').*', jobname):
-        if len(jobname) > 6 and jobname[6] in constants.AMB_PERMITIDO_LRBA:
-            nuevo_jobname = jobname[:6] + letra_cambio + jobname[7:]
-            logger.info(f"JOBNAME modificado (prefijos grandes, posición 6): '{nuevo_jobname}'")
-            return nuevo_jobname
-        elif len(jobname) > 6 and jobname[7] in constants.AMB_PERMITIDO_LRBA:
-            nuevo_jobname = jobname[:7] + letra_cambio + jobname[8:]
-            logger.info(f"JOBNAME modificado (prefijos grandes, posición 7): '{nuevo_jobname}'")
-            return nuevo_jobname
-
-    # Modifica el JOBNAME basado en prefijos pequeños
-    elif re.match(r'^(' + PATRON_PREFIJOS_PEQUENOS + ').*', jobname):
-        if len(jobname) > 5 and jobname[5] in constants.AMB_PERMITIDO_LRBA:
-            nuevo_jobname = jobname[:5] + letra_cambio + jobname[6:]
-            logger.info(f"JOBNAME modificado (prefijos pequeños, posición 5): '{nuevo_jobname}'")
-            return nuevo_jobname
-    
-    return jobname  # Si no se hace ninguna modificación, devolver el original
+    return jobname
 
 # Función para cargar el XML
 def cargar_xml(archivo_xml):
@@ -399,7 +392,7 @@ def modificar_variable(variable, ambiente, modificar_odate, contadores):
     variable.set(constants.VALUE, nuevo_value)
     logger.debug(f'VARIABLE VALUE modificado de "{value}" a "{nuevo_value}"')
 
-def procesar_application(job, conf):
+def procesar_application(job, conf, contadores):
     application = job.get(constants.APPLICATION)
     sub_application = job.get(constants.SUB_APPLICATION)
 
@@ -411,6 +404,7 @@ def procesar_application(job, conf):
         sub_ccr = conf["sub_app_ctrlm"]
         # Asignar el nuevo valor a sub_application
         job.set(constants.SUB_APPLICATION, sub_application_value + sub_ccr)
+        incrementar_contador(contadores, constants.CONTADOR_SUBAPP)
         logger.debug(f'SUB_APPLICATION modificado a "{sub_application_value}" para job {job.get(constants.JOBNAME)}')
     else:
         logger.debug(f'SUB_APPLICATION no modificado para job {job.get(constants.JOBNAME)} ya que no contiene "-CO-"')
@@ -421,6 +415,8 @@ def registrar_modificaciones(contadores):
         logger.warning(f'Total de JOBNAME modificados: {contadores["modificaciones"]}')
     if contadores[constants.CONTADOR_NODEID] > 0:
         logger.warning(f'Total de NODEID modificados: {contadores["nodeid"]}')
+    if contadores[constants.CONTADOR_SUBAPP] > 0:
+        logger.warning(f'Total de SUB_APPLICATION modificados: {contadores["subapp"]}')
     if contadores[constants.CONTADOR_CMDLINE] > 0:
         logger.warning(f'Total de CMDLINE--namespace modificados: {contadores["cmdline"]}')
     if contadores[constants.CONTADOR_NAMESPACE] > 0:

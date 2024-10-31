@@ -76,6 +76,7 @@ CONTADORES = {
     'odate': 0,
     'quan': 0,
     'quanm': 0,
+    'subapp': 0,
 }
 
 PREFIJOS_GRANDES = ['CCUGH', 'CCBTQ', 'CCBGH', 'CCBGU', 'CCTSU', 'CCMOL', 'CCPAN', 'CCZXH', 'CCBNT', 'CCDNG', 'CMS01']
