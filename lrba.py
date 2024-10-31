@@ -4,7 +4,7 @@ import xml.dom.minidom as MD
 import re
 import constants
 import argparse
-from config import CONTADORES, AMBIENTES, AMBIENTE_DESARROLLO, AMBIENTE_CALIDAD, AMBIENTE_PRODUCCION, CONFIGURACION_DESARROLLO, CONFIGURACION_CALIDAD, CONFIGURACION_PRODUCCION, PREFIJOS_PEQUENOS, PREFIJOS_GRANDES ,PATRON_PREFIJOS_GRANDES, PATRON_PREFIJOS_PEQUENOS
+from config import CONTADORES, AMBIENTES, AMBIENTE_DESARROLLO, AMBIENTE_INT, AMBIENTE_CALIDAD, AMBIENTE_AU, AMBIENTE_PRODUCCION, CONFIGURACION_DESARROLLO, CONFIGURACION_INT, CONFIGURACION_CALIDAD, CONFIGURACION_AU, CONFIGURACION_PRODUCCION, PREFIJOS_PEQUENOS, PREFIJOS_GRANDES ,PATRON_PREFIJOS_GRANDES, PATRON_PREFIJOS_PEQUENOS
 from logger_setup import setup_logger
 
 # Configuración de logger
@@ -21,56 +21,17 @@ def incrementar_contador(contador_dict, key):
 
 def main():
     # Mostrar ejemplo de uso
-    ejemplo_uso_produccion = """
-    Ejemplo de ejecución Produccion:
-    py lrba.py --ambiente produccion --archivo-xml CR-COCBGHDIA-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs 01,02
-    """
-    ejemplo_uso_calidad = """
-    Ejemplo de ejecución Calidad:
-    py lrba.py --ambiente calidad --archivo-xml CR-COCBGHDIAC-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs 01,02
-    """
-    epilog_text = f"{ejemplo_uso_produccion} \n {ejemplo_uso_calidad}"
+    epilog_text = f"{constants.EJEMPLO_USO_PRODUCCION}{constants.EJEMPLO_USO_CALIDAD}"
     # Inicializar el parser
-    parser = argparse.ArgumentParser(
-        description="Script para transformar archivos XML de Control-M a diferentes ambientes.",
-        epilog=epilog_text,
-        formatter_class=argparse.RawTextHelpFormatter
-    )
+    parser = argparse.ArgumentParser(description=constants.DESCRIPTION, epilog=epilog_text, formatter_class=argparse.RawTextHelpFormatter)
     # Argumentos para definir el ambiente y archivo XML
-    parser.add_argument(
-        '--ambiente',
-        type=str,
-        choices=AMBIENTES,
-        required=True,
-        help="Especifica el ambiente de destino. Opciones: 'desarrollo', 'calidad' o 'produccion'."
-    )
-    parser.add_argument(
-        '--archivo-xml',
-        type=str,
-        required=True,
-        help="Especifica el nombre del archivo XML que se va a modificar (incluye la extensión .xml)."
-    )
+    parser.add_argument('--ambiente',type=str,choices=AMBIENTES,required=True,help=constants.HELP_AMB)
+    parser.add_argument('--archivo-xml',type=str,required=True,help=constants.HELP_ARC)
     # Opciones de modificación
-    parser.add_argument(
-        '--modificar-quantitative',
-        action='store_true',
-        help="Modifica o agrega las etiquetas QUANTITATIVE en el archivo XML. Estas etiquetas se usan para controlar recursos y la cantidad de tareas simultáneas permitidas en LRBA."
-    )
-    parser.add_argument(
-        '--modificar-domail',
-        action='store_true',
-        help="Modifica o agrega las etiquetas DOMAIL, que suelen indicar la configuración de dominio para un ambiente específico."
-    )
-    parser.add_argument(
-        '--modificar-odate',
-        action='store_true',
-        help="Modifica las variables %%ODATE en el archivo XML, que representan fechas operativas, agregando '..' si es necesario."
-    )
-    parser.add_argument(
-        '--modificar-jobs',
-        type=str,
-        help="Modifica solo jobs específicos, proporcionando los últimos dos caracteres de los JOBNAME separados por comas (ej: 01,02,03)"
-    )
+    parser.add_argument('--modificar-quantitative',action='store_true',help=constants.HELP_QUA)
+    parser.add_argument('--modificar-domail',action='store_true',help=constants.HELP_DOM)
+    parser.add_argument('--modificar-odate',action='store_true',help=constants.HELP_ODA)
+    parser.add_argument('--modificar-jobs',type=str,help=constants.HELP_JOB)
     # Parsear los argumentos
     args = parser.parse_args()
     # Extraer la lista de jobs a modificar si se especifica el argumento
@@ -82,17 +43,16 @@ def main():
         jobs_a_modificar = None
         
     # Mensaje de bienvenida
-    logger.info("BIENVENIDO A LA TRANSFORMACIÓN DE MALLAS DE LRBA")
+    logger.info(constants.BIENVENIDA)
     logger.info(f"Ambiente seleccionado: {args.ambiente}")
     logger.info(f"Archivo XML a modificar: {args.archivo_xml}")
     if args.modificar_quantitative:
-        logger.info("Opción de modificación QUANTITATIVE activada.")
+        logger.info(constants.OPCION_QUAN)
     if args.modificar_domail:
-        logger.info("Opción de modificación DOMAIL activada.")
+        logger.info(constants.OPCION_DOMAIL)
     if args.modificar_odate:
-        logger.info("Opción de modificación ODATE activada.")
-    if jobs_a_modificar:
-        logger.info(f"Jobs específicos a modificar: {', '.join(jobs_a_modificar)}")
+        logger.info(constants.OPCION_ODATE)
+        
     modificar_xml(
         args.archivo_xml,
         args.ambiente,
@@ -108,7 +68,6 @@ def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modif
         return
     conf = seleccionar_configuracion(ambiente)
     # Inicializamos un contador para las modificaciones de JOBNAME/QUANTITATIVE
-
     modificar_folder(root, conf["nuevo_datacenter"])
     # Recorremos cada etiqueta JOB
     for job in root.findall(constants.JOB):
@@ -117,11 +76,9 @@ def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modif
         parent_folder = job.get(constants.PARENT_FOLDER)
         application = job.get(constants.APPLICATION)
         sub_application = job.get(constants.SUB_APPLICATION)
-        
         # Constantes para patrones de email
         DOMAIL_SUBJECT = 'Error %%JOBNAME - %%$ODATE M malla ' + parent_folder
         DOMAIL_MESSAGE = '0051Error %%JOBNAME - %%$ODATE M malla ' + parent_folder
-        logger.info(f'{jobs_a_modificar}')
         # Si se proporcionó una lista de jobs específicos, filtrar por los últimos dos caracteres de JOBNAME
         if jobs_a_modificar and jobname[-2:] not in jobs_a_modificar:
             continue
@@ -131,27 +88,20 @@ def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modif
             job.set(constants.JOBNAME, nuevo_jobname)
             incrementar_contador(CONTADORES, constants.CONTADOR_MODIFICACIONES)
             logger.debug(f'JOBNAME modificado de "{jobname}" a "{nuevo_jobname}"')
-            
         # Modifica NODEID (cambiar a los valores dependiendo del ambiente)
         modificar_nodeid(job, conf)
-
         # Modifica CMDLINE (cambiar .dev por .au o .prod dependiendo del ambiente)
         modificar_cmdline(job, conf)
-
         # Modificar la etiqueta ON y sus subetiquetas DOMAIL
-        modificar_domail_en_on(job, conf, ambiente, modificar_domail, parent_folder, DOMAIL_SUBJECT, DOMAIL_MESSAGE)
-                        
+        modificar_domail_en_on(job, conf, ambiente, modificar_domail, parent_folder, DOMAIL_SUBJECT, DOMAIL_MESSAGE)             
         # Modificar INCOND
         inconds = job.findall(constants.INCOND)
         modificar_condiciones(inconds, conf["letra_cambio"], conf["nuevo_condicion"], '|'.join(PREFIJOS_GRANDES), '|'.join(PREFIJOS_PEQUENOS))
-        
         # Modificar OUTCOND
         outconds = job.findall(constants.OUTCOND)
         modificar_condiciones(outconds, conf["letra_cambio"], conf["nuevo_condicion"], '|'.join(PREFIJOS_GRANDES), '|'.join(PREFIJOS_PEQUENOS))
-        
         # Comprobar si RUN_AS es igual a "lrba-ctm"
         modificar_quantitative(job, conf, ambiente, modificar_quan)
-        
         # Modificar SUB_APPLICATION
         procesar_application(job, conf)
     
@@ -160,7 +110,7 @@ def modificar_xml(archivo_xml, ambiente, modificar_quan, modificar_domail, modif
         
     xml_str = ET.tostring(root, constants.VAR_UTF)
     parsed_string = MD.parseString(xml_str)
-    pretty_xml_as_string = parsed_string.toprettyxml(indent="     ", encoding=constants.VAR_UTF).decode(constants.VAR_UTF)
+    pretty_xml_as_string = parsed_string.toprettyxml(indent=constants.VAR_INDENT, encoding=constants.VAR_UTF).decode(constants.VAR_UTF)
     pretty_xml_as_string = constants.VAR_BACK_SLASH.join([line for line in pretty_xml_as_string.splitlines() if line.strip()])
     with open(parent_folder+'-generate.xml', constants.VAR_W, encoding=constants.VAR_UTF) as f:
             f.write(pretty_xml_as_string)    
@@ -219,7 +169,11 @@ def seleccionar_configuracion(ambiente):
     elif ambiente == AMBIENTE_DESARROLLO:
         return CONFIGURACION_DESARROLLO
     elif ambiente == AMBIENTE_PRODUCCION:
-        return CONFIGURACION_PRODUCCION   
+        return CONFIGURACION_PRODUCCION
+    elif ambiente == AMBIENTE_INT:
+        return CONFIGURACION_INT
+    else:
+        return CONFIGURACION_AU     
 
 # Función para modificar el folder
 def modificar_folder(root, nuevo_datacenter):
@@ -246,68 +200,32 @@ def modificar_nodeid(job, conf):
 # Función para modificar CMDLINE
 def modificar_cmdline(job, conf):
     cmdline = job.get(constants.CMDLINE)
+    variables = [constants.VAR_DEV, constants.VAR_INT, constants.VAR_AU, constants.VAR_QA, constants.VAR_PROD]
+    # Verificación y reemplazo en CMDLINE
     if cmdline and constants.LLNAMESPACE in cmdline:
-        index_namespace = cmdline.find(constants.LLNAMESPACE)
-        namespace_part = cmdline[index_namespace:]
-        if constants.VAR_DEV in namespace_part:
-            nuevo_cmdline = cmdline.replace(constants.VAR_DEV, conf["nuevo_cmdline_ambiente"])
-            job.set(constants.CMDLINE, nuevo_cmdline)
-            incrementar_contador(CONTADORES, constants.CONTADOR_CMDLINE)
-            logger.debug(f'CMDLINE modificado de {cmdline} a {nuevo_cmdline}')
-            return True
-        elif constants.VAR_AU in namespace_part:
-            nuevo_cmdline = cmdline.replace(constants.VAR_AU, conf["nuevo_cmdline_ambiente"])
-            job.set(constants.CMDLINE, nuevo_cmdline)
-            incrementar_contador(CONTADORES, constants.CONTADOR_CMDLINE)
-            logger.debug(f'CMDLINE modificado de {cmdline} a {nuevo_cmdline}')
-            return True
-        elif constants.VAR_QA in namespace_part:
-            nuevo_cmdline = cmdline.replace(constants.VAR_QA, conf["nuevo_cmdline_ambiente"])
-            job.set(constants.CMDLINE, nuevo_cmdline)
-            incrementar_contador(CONTADORES, constants.CONTADOR_CMDLINE)
-            logger.debug(f'CMDLINE modificado de {cmdline} a {nuevo_cmdline}')
-            return True
-        elif constants.VAR_PROD in namespace_part:
-            nuevo_cmdline = cmdline.replace(constants.VAR_PROD, conf["nuevo_cmdline_ambiente"])
-            job.set(constants.CMDLINE, nuevo_cmdline)
-            incrementar_contador(CONTADORES, constants.CONTADOR_CMDLINE)
-            logger.debug(f'CMDLINE modificado de {cmdline} a {nuevo_cmdline}')
-            return True
-        else:
-            # Si no está en CMDLINE, buscamos en las etiquetas VARIABLE
-            for variable in job.findall(constants.VARIABLE):
-                name = variable.get(constants.NAME)
-                value = variable.get(constants.VALUE)
-                if name in constants.NODO_PERMITIDO_VAR_NAMESPACE and value and constants.VAR_DEV in value:
-                    nuevo_value = value.replace(constants.VAR_DEV, conf["nuevo_variable_ambiente"])
+        for var in variables:
+            if var in cmdline:
+                nuevo_cmdline = cmdline.replace(var, conf["nuevo_cmdline_ambiente"])
+                job.set(constants.CMDLINE, nuevo_cmdline)
+                incrementar_contador(CONTADORES, constants.CONTADOR_CMDLINE)
+                logger.debug(f'CMDLINE modificado de {cmdline} a {nuevo_cmdline}')
+                return True
+    # Verificación y reemplazo en VARIABLES
+    for variable in job.findall(constants.VARIABLE):
+        name = variable.get(constants.NAME)
+        value = variable.get(constants.VALUE)
+        if name in constants.NODO_PERMITIDO_VAR_NAMESPACE and value:
+            for var in variables:
+                if var in value:
+                    nuevo_value = value.replace(var, conf["nuevo_variable_ambiente"])
                     variable.set(constants.VALUE, nuevo_value)
                     incrementar_contador(CONTADORES, constants.CONTADOR_NAMESPACE)
                     logger.debug(f'VARIABLE modificado de {value} a {nuevo_value}')
-                    break
-                elif name in constants.NODO_PERMITIDO_VAR_NAMESPACE and value and constants.VAR_AU in value:
-                    nuevo_value = value.replace(constants.VAR_AU, conf["nuevo_variable_ambiente"])
-                    variable.set(constants.VALUE, nuevo_value)
-                    incrementar_contador(CONTADORES, constants.CONTADOR_NAMESPACE)
-                    logger.debug(f'VARIABLE modificado de {value} a {nuevo_value}')
-                    break
-                elif name in constants.NODO_PERMITIDO_VAR_NAMESPACE and value and constants.VAR_QA in value:
-                    nuevo_value = value.replace(constants.VAR_QA, conf["nuevo_variable_ambiente"])
-                    variable.set(constants.VALUE, nuevo_value)
-                    incrementar_contador(CONTADORES, constants.CONTADOR_NAMESPACE)
-                    logger.debug(f'VARIABLE modificado de {value} a {nuevo_value}')
-                    break
-                elif name in constants.NODO_PERMITIDO_VAR_NAMESPACE and value and constants.VAR_PROD in value:
-                    nuevo_value = value.replace(constants.VAR_PROD, conf["nuevo_variable_ambiente"])
-                    variable.set(constants.VALUE, nuevo_value)
-                    incrementar_contador(CONTADORES, constants.CONTADOR_NAMESPACE)
-                    logger.debug(f'VARIABLE modificado de {value} a {nuevo_value}')
-                    break
-            return True    
+                    return True  
     return False
 
 # Función para modificar DOMAIL
 def modificar_domail_en_on(job, conf, ambiente, modificar_domail, parent_folder, subject, message):
-    logger.info(f'modificar_domail: {modificar_domail} (tipo: {type(modificar_domail)})')
     if modificar_domail:
         on_tags = job.findall(constants.ON)
         if not on_tags:
@@ -324,30 +242,30 @@ def modificar_domail_en_on(job, conf, ambiente, modificar_domail, parent_folder,
                     domail.set(constants.VAR_DEST, conf["domail_destino"])
                     domail.set(constants.VAR_SUBJECT, subject)
                     domail.set(constants.VAR_MESSAGE, message)
-                    incrementar_contador(CONTADORES, constants.CONTADOR_DOMAIL)
+                    incrementar_contador(CONTADORES, constants.CONTADOR_DOMAIL_M)
                     logger.debug(f'DOMAIL modificado: DEST="{domail.get("DEST")}", SUBJECT="{subject}", MESSAGE="{message}"')
 
 def crear_domail(ambiente, conf, subject, message):
-    on_element = ET.Element("ON", {
+    on_element = ET.Element(constants.ON, {
         "STMT": "*",
         "CODE": "NOTOK"
     })
     # Crear la etiqueta QUANTITATIVE según el ambiente
     if ambiente in constants.AMBIENTES_PREVIOS:
-        element = ET.Element("DOMAIL", {
+        element = ET.Element(constants.DOMAIL, {
             "URGENCY": constants.VAR_URGENCY,
             "DEST": conf,
             "SUBJECT": subject,
             "MESSAGE": message,
-            "ATTACH_SYSOUT": "Y"
+            "ATTACH_SYSOUT": constants.VAR_Y
         })
     elif ambiente == constants.PRODUCCION:
-        element = ET.Element("DOMAIL", {
+        element = ET.Element(constants.DOMAIL, {
             "URGENCY": constants.VAR_URGENCY,
             "DEST": conf,
             "SUBJECT": subject,
             "MESSAGE": message,
-            "ATTACH_SYSOUT": "Y"
+            "ATTACH_SYSOUT": constants.VAR_Y
         })
     # Agregar QUANTITATIVE a ON
     on_element.append(element)
@@ -394,38 +312,50 @@ def modificar_condiciones(condiciones, letra_cambio, nuevo_condicion, patron_pre
 def modificar_quantitative(job, conf, ambiente, modificar_quantitative):
     run_as = job.get(constants.RUN_AS)
     if modificar_quantitative and run_as == constants.LRBA_CTM:
+        quantitative = job.find(constants.QUANTITATIVE)
         existe_quantitative = job.find(constants.QUANTITATIVE) is not None
         if not existe_quantitative:
-            incrementar_contador(CONTADORES, constants.CONTADOR_QUAN)
             nueva_etiqueta = crear_quantitative(ambiente)
             on_tag = job.find(constants.OUTCOND2)
             if on_tag is not None:
                 for idx, child in enumerate(job):
                     if child == on_tag:
                         job.insert(idx, nueva_etiqueta)
+                        incrementar_contador(CONTADORES, constants.CONTADOR_QUAN)
                         logger.debug(f'Etiqueta QUANTITATIVE añadida antes de la etiqueta ON en JOB con RUN_AS "lrba-ctm": {ET.tostring(nueva_etiqueta).decode()}')
                         return True
-            else:
-                mensajes.append(f'WARN - El JOB "{job.get("JOBNAME")}" no tiene etiqueta ON.')
-                return True
+        else:
+            actualizar_quantitative(quantitative, ambiente)
+            incrementar_contador(CONTADORES, constants.CONTADOR_QUAN_M)
+            logger.debug(f'Etiqueta QUANTITATIVE actualizada en JOB con RUN_AS "lrba-ctm": {ET.tostring(quantitative).decode()}')
+            return True
     return False
 
 # Función para crear etiqueta QUANTITATIVE
 def crear_quantitative(ambiente):
     if ambiente in constants.AMBIENTES_PREVIOS:
         return ET.Element("QUANTITATIVE", {
-            "NAME": "MAX-LRA_BATCH-WORK-CO",
-            "QUANT": "1",
-            "ONFAIL": "R",
-            "ONOK": "R"
+            "NAME": constants.VAR_QUAN_WORK,
+            "QUANT": constants.VAR_NUMBER_ONE,
+            "ONFAIL": constants.VAR_URGENCY,
+            "ONOK": constants.VAR_URGENCY
         })
     elif ambiente == constants.PRODUCCION:
         return ET.Element("QUANTITATIVE", {
-            "NAME": "MAX-LRA_BATCH-LIVE-CO",
-            "QUANT": "1",
-            "ONFAIL": "R",
-            "ONOK": "R"
+            "NAME": constants.VAR_QUAN_LIVE,
+            "QUANT": constants.VAR_NUMBER_ONE,
+            "ONFAIL": constants.VAR_URGENCY,
+            "ONOK": constants.VAR_URGENCY
         })
+
+def actualizar_quantitative(quantitative, ambiente):
+    if ambiente in constants.AMBIENTES_PREVIOS:
+        quantitative.set("NAME", constants.VAR_QUAN_WORK)
+    elif ambiente == constants.PRODUCCION:
+        quantitative.set("NAME", constants.VAR_QUAN_LIVE)
+    quantitative.set("QUANT", constants.VAR_NUMBER_ONE)
+    quantitative.set("ONFAIL", constants.VAR_URGENCY)
+    quantitative.set("ONOK", constants.VAR_URGENCY)
 
 def modificar_variable(variable, ambiente, modificar_odate, contadores):
     value = variable.get(constants.VALUE)
@@ -474,9 +404,9 @@ def procesar_application(job, conf):
     sub_application = job.get(constants.SUB_APPLICATION)
 
     # Verificar si "-CO-" está presente en la etiqueta application
-    if "-CO-" in application:
+    if constants.VAR_CO in application:
         # Extraer lo que sigue a "-CO-"
-        index_co = application.index("-CO-")
+        index_co = application.index(constants.VAR_CO)
         sub_application_value = application[index_co + 1:]  # Obtener la subcadena empezando en "-CO-"
         sub_ccr = conf["sub_app_ctrlm"]
         # Asignar el nuevo valor a sub_application
@@ -496,12 +426,15 @@ def registrar_modificaciones(contadores):
     if contadores[constants.CONTADOR_NAMESPACE] > 0:
         logger.warning(f'Total de VARIABLES%%namespace modificados: {contadores["namespace"]}')
     if contadores[constants.CONTADOR_DOMAIL] > 0:
-        logger.warning(f'Total de DOMAIL modificados/agregados: {contadores["domail"]}')    
+        logger.warning(f'Total de DOMAIL agregados: {contadores["domail"]}')
+    if contadores[constants.CONTADOR_DOMAIL_M] > 0:
+        logger.warning(f'Total de DOMAIL modificados: {contadores["domailm"]}')       
     if contadores[constants.CONTADOR_ODATE] > 0:
         logger.warning(f'Total de %%ODATE modificados: {contadores["odate"]}')        
     if contadores[constants.CONTADOR_QUAN] > 0:
         logger.warning(f'Total de QUANTITATIVE agregados: {contadores["quan"]}')
-        logger.info(f'Para evitar errores en el formato, haz un "enter" después de cada etiqueta generada de QUANTITATIVE (Antes de la etiqueta OUTCOND)')
-
+    if contadores[constants.CONTADOR_QUAN_M] > 0:
+        logger.warning(f'Total de QUANTITATIVE modificados: {contadores["quanm"]}')
+        
 if __name__ == "__main__":
     main()

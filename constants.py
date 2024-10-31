@@ -20,12 +20,16 @@ PREFIJOS_OF = [
 
 # Etiquetas ambiente
 DESARROLLO = 'desarrollo'
+INT = 'int'
 CALIDAD = 'calidad'
+AU = 'au'
 PRODUCCION = 'produccion'
 
 AMBIENTES_PREVIOS = [
     DESARROLLO,
-    CALIDAD
+    INT,
+    CALIDAD,
+    AU
 ]
 
 # Etiquetas y contadores
@@ -34,8 +38,10 @@ CONTADOR_NODEID = 'nodeid'
 CONTADOR_CMDLINE = 'cmdline'
 CONTADOR_NAMESPACE = 'namespace'
 CONTADOR_DOMAIL = 'domail'
+CONTADOR_DOMAIL_M = 'domailm'
 CONTADOR_ODATE = 'odate'
 CONTADOR_QUAN = 'quan'
+CONTADOR_QUAN_M = 'quanm'
 
 # Etiquietas Control-M
 INCOND = './INCOND'
@@ -47,6 +53,7 @@ FOLDER = './/FOLDER'
 ON = './/ON'
 QUANTITATIVE = './/QUANTITATIVE'
 JOBNAME = 'JOBNAME'
+ON = 'ON'
 RUN_AS = 'RUN_AS'
 PARENT_FOLDER = 'PARENT_FOLDER'
 NODEID = 'NODEID'
@@ -120,6 +127,7 @@ NODO_PERMITIDO_VAR_NAMESPACE = [
 
 # Otros
 VAR_TO = '-TO-'
+VAR_CO = "-CO-"
 VAR_DOBPOINT = '..'
 VAR_COXCRX = 'COXCRX_'
 VAR_DEST = 'DEST'
@@ -128,4 +136,29 @@ VAR_MESSAGE = 'MESSAGE'
 VAR_UTF = "utf-8"
 VAR_BACK_SLASH = "\n"
 VAR_W = "w"
+VAR_Y = "Y"
 VAR_URGENCY = 'R'
+VAR_QUAN_WORK = "MAX-LRA_BATCH-WORK-CO"
+VAR_QUAN_LIVE = "MAX-LRA_BATCH-LIVE-CO"
+VAR_NUMBER_ONE = "1"
+VAR_INDENT = "     "
+# Variables help
+EJEMPLO_USO_PRODUCCION = """
+Ejemplo de ejecución Produccion:
+py lrba.py --ambiente produccion --archivo-xml CR-COCBGHDIA-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs 01,02
+"""
+EJEMPLO_USO_CALIDAD = """
+Ejemplo de ejecución Calidad:
+py lrba.py --ambiente calidad --archivo-xml CR-COCBGHDIAC-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs 01,02
+"""
+BIENVENIDA = "BIENVENIDO A LA TRANSFORMACIÓN DE MALLAS DE LRBA"
+DESCRIPTION = "Script para transformar archivos XML de Control-M a diferentes ambientes."
+OPCION_QUAN = "Opción de modificación QUANTITATIVE activada."
+OPCION_DOMAIL = "Opción de modificación DOMAIL activada."
+OPCION_ODATE = "Opción de modificación ODATE activada."
+HELP_AMB = "Especifica el ambiente de destino. Opciones: 'desarrollo', 'int', 'calidad', 'au' o 'produccion'."
+HELP_ARC = "Especifica el nombre del archivo XML que se va a modificar (incluye la extensión .xml)."
+HELP_QUA = "Modifica o agrega las etiquetas QUANTITATIVE en el archivo XML. Estas etiquetas se usan para controlar recursos y la cantidad de tareas simultáneas permitidas en LRBA."
+HELP_DOM = "Modifica o agrega las etiquetas DOMAIL, que suelen indicar la configuración de dominio para un ambiente específico."
+HELP_ODA = "Modifica las variables %%ODATE en el archivo XML, que representan fechas operativas, agregando '..' si es necesario."
+HELP_JOB = "Modifica solo jobs específicos, proporcionando los últimos dos caracteres de los JOBNAME separados por comas (ej: 01,02,03)"

@@ -1,6 +1,8 @@
 # config.py
 AMBIENTE_DESARROLLO = "desarrollo"
+AMBIENTE_INT = "int"
 AMBIENTE_CALIDAD = "calidad"
+AMBIENTE_AU = "au"
 AMBIENTE_PRODUCCION = "produccion"
 
 CONFIGURACION_DESARROLLO = {
@@ -10,9 +12,32 @@ CONFIGURACION_DESARROLLO = {
     "nuevo_cmdline_ambiente": '.dev',
     "nuevo_variable_ambiente": '.dev',
     "nuevo_datacenter": 'Ctrlm_Desarrollo',
-    "output_file": 'output_dev.xml',
     "nuevo_condicion": 'D',
     "domail_destino": '', # En desarrollo poner su correo para pruebas
+    "sub_app_ctrlm": '-CCR'
+}
+
+CONFIGURACION_INT = {
+    "letra_cambio": 'D',
+    "nuevo_nodeid": 'datax-ctrlm',
+    "nuevo_nodeidlrba": 'LRBA_CO_DESA',
+    "nuevo_cmdline_ambiente": '.int',
+    "nuevo_variable_ambiente": '.int',
+    "nuevo_datacenter": 'Ctrlm_Desarrollo',
+    "nuevo_condicion": 'D',
+    "domail_destino": '', # En desarrollo poner su correo para pruebas
+    "sub_app_ctrlm": '-CCR'
+}
+
+CONFIGURACION_AU = {
+    "letra_cambio": 'C',
+    "nuevo_nodeid": 'LCVWCOAXFT01S',
+    "nuevo_nodeidlrba": 'LRBA_CO_QA',
+    "nuevo_cmdline_ambiente": '.au',
+    "nuevo_variable_ambiente": '.au',
+    "nuevo_datacenter": 'Ctrlm_Desarrollo',
+    "nuevo_condicion": 'Q',
+    "domail_destino": 'lraco.group@bbva.com',
     "sub_app_ctrlm": '-CCR'
 }
 
@@ -20,10 +45,9 @@ CONFIGURACION_CALIDAD = {
     "letra_cambio": 'C',
     "nuevo_nodeid": 'LCVWCOAXFT01S',
     "nuevo_nodeidlrba": 'LRBA_CO_QA',
-    "nuevo_cmdline_ambiente": '.au',
-    "nuevo_variable_ambiente": '.au',
+    "nuevo_cmdline_ambiente": '.qa',
+    "nuevo_variable_ambiente": '.qa',
     "nuevo_datacenter": 'Ctrlm_Desarrollo',
-    "output_file": 'output_quality.xml',
     "nuevo_condicion": 'Q',
     "domail_destino": 'lraco.group@bbva.com',
     "sub_app_ctrlm": '-CCR'
@@ -36,7 +60,6 @@ CONFIGURACION_PRODUCCION = {
     "nuevo_cmdline_ambiente": '.pro',
     "nuevo_variable_ambiente": '.pro',
     "nuevo_datacenter": 'CTM_CTRLMCCR',
-    "output_file": 'output_prod.xml',
     "nuevo_condicion": 'P',
     "domail_destino": 'monitoreo.colombia@bbva.com',
     "sub_app_ctrlm": '-CCR'
@@ -49,14 +72,16 @@ CONTADORES = {
     'cmdline': 0,
     'namespace': 0,
     'domail': 0,
+    'domailm': 0,
     'odate': 0,
     'quan': 0,
+    'quanm': 0,
 }
 
-PREFIJOS_GRANDES = ['CCUGH', 'CCBTQ', 'CCBGH', 'CCBGU', 'CCTSU', 'CCMOL', 'CCPAN', 'CCZXH', 'CCBNT']
+PREFIJOS_GRANDES = ['CCUGH', 'CCBTQ', 'CCBGH', 'CCBGU', 'CCTSU', 'CCMOL', 'CCPAN', 'CCZXH', 'CCBNT', 'CCDNG', 'CMS01']
 PREFIJOS_PEQUENOS = ['CBTQ', 'CCOG']
 
-AMBIENTES = ["desarrollo", "calidad", "produccion"]
+AMBIENTES = ["desarrollo", "int", "calidad", "au", "produccion"]
 
 PATRON_PREFIJOS_GRANDES = '|'.join(PREFIJOS_GRANDES)
 PATRON_PREFIJOS_PEQUENOS = '|'.join(PREFIJOS_PEQUENOS)
