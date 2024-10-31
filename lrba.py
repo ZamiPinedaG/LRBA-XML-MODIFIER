@@ -3,7 +3,6 @@ import xml.etree.ElementTree as ET
 import re
 import constants
 import argparse
-from tabulate import tabulate
 from config import CONTADORES, AMBIENTES, AMBIENTE_DESARROLLO, AMBIENTE_CALIDAD, AMBIENTE_PRODUCCION, CONFIGURACION_DESARROLLO, CONFIGURACION_CALIDAD, CONFIGURACION_PRODUCCION, PREFIJOS_PEQUENOS, PREFIJOS_GRANDES ,PATRON_PREFIJOS_GRANDES, PATRON_PREFIJOS_PEQUENOS
 from logger_setup import setup_logger
 
@@ -416,35 +415,20 @@ def procesar_application(job, conf):
 
 def registrar_modificaciones(contadores):
     # Lista de registros para las modificaciones
-    registros = []
     if contadores[constants.CONTADOR_MODIFICACIONES] > 0:
-        registros.append(["JOBNAME", contadores["modificaciones"]])
         logger.warning(f'Total de JOBNAME modificados: {contadores["modificaciones"]}')
     if contadores[constants.CONTADOR_NODEID] > 0:
-        registros.append(["NODEID", contadores["nodeid"]])
         logger.warning(f'Total de NODEID modificados: {contadores["nodeid"]}')
     if contadores[constants.CONTADOR_CMDLINE] > 0:
-        registros.append(["CMDLINE--namespace", contadores["cmdline"]])
         logger.warning(f'Total de CMDLINE--namespace modificados: {contadores["cmdline"]}')
     if contadores[constants.CONTADOR_NAMESPACE] > 0:
-        registros.append(["VARIABLES%%namespace", contadores["namespace"]])
         logger.warning(f'Total de VARIABLES%%namespace modificados: {contadores["namespace"]}')
     if contadores[constants.CONTADOR_DOMAIL] > 0:
-        registros.append(["DOMAIL", contadores["domail"]])   
         logger.warning(f'Total de DOMAIL modificados/agregados: {contadores["domail"]}')    
     if contadores[constants.CONTADOR_ODATE] > 0:
-        registros.append(["%%ODATE", contadores["odate"]]) 
         logger.warning(f'Total de %%ODATE modificados: {contadores["odate"]}')        
     if contadores[constants.CONTADOR_QUAN] > 0:
-        registros.append(["QUANTITATIVE", contadores["quan"]])
         logger.warning(f'Total de QUANTITATIVE agregados: {contadores["quan"]}')
         logger.info(f'Para evitar errores en el formato, haz un "enter" después de cada etiqueta generada de QUANTITATIVE (Antes de la etiqueta OUTCOND)')
-    # Solo registrar si hay modificaciones
-    if registros:
-        # Usar tabulate para mostrar los registros
-        tabla = tabulate(registros, headers=["Modificación", "Cantidad"], tablefmt="pretty")
-        logger.warning(f"Resumen de modificaciones:\n{tabla}")
-    else:
-        logger.info("No se realizaron modificaciones.")
 if __name__ == "__main__":
     main()
