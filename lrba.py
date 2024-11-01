@@ -361,6 +361,10 @@ def modificar_variable(variable, ambiente, modificar_odate, contadores):
             nuevo_value = constants.PREFIJO_COBD_DESARROLLO + value[4:]
         elif ambiente == constants.CALIDAD:  # Suponiendo que 'ambiente' es una variable que define el ambiente
             nuevo_value = constants.PREFIJO_COBD_CALIDAD + value[4:]  # Cambia COB
+        elif ambiente == constants.AU:
+            nuevo_value = constants.PREFIJO_COBD_CALIDAD + value[4:]  # Cambia COB
+        elif ambiente == constants.INT:
+            nuevo_value = constants.PREFIJO_COBD_DESARROLLO + value[4:]  # Cambia COB                        
         elif ambiente == constants.PRODUCCION:
             nuevo_value = constants.PREFIJO_COBD_PRODUCCION + value[4:]  # Cambia COB
 
@@ -370,6 +374,10 @@ def modificar_variable(variable, ambiente, modificar_odate, contadores):
             nuevo_value = constants.PREFIJO_DOF_DESARROLLO + value[3:]
         elif ambiente == constants.CALIDAD:
             nuevo_value = constants.PREFIJO_DOF_CALIDAD + value[3:]  # Cambia OF
+        elif ambiente == constants.AU:
+            nuevo_value = constants.PREFIJO_DOF_CALIDAD + value[4:]  # Cambia COB
+        elif ambiente == constants.INT:
+            nuevo_value = constants.PREFIJO_DOF_DESARROLLO + value[4:]  # Cambia COB         
         elif ambiente == constants.PRODUCCION:
             nuevo_value = constants.PREFIJO_DOF_PRODUCCION + value[3:]  # Cambia OF
 
