@@ -1,12 +1,13 @@
 # config.py
-AMBIENTE_DESARROLLO = "desarrollo"
+AMBIENTE_DESARROLLO = "dev"
 AMBIENTE_INT = "int"
-AMBIENTE_CALIDAD = "calidad"
+AMBIENTE_CALIDAD = "qa"
 AMBIENTE_AU = "au"
-AMBIENTE_PRODUCCION = "produccion"
+AMBIENTE_PRODUCCION = "pro"
 
 CONFIGURACION_DESARROLLO = {
     "letra_cambio": 'D',
+    "malla_letra_cambio": 'D',
     "nuevo_nodeid": 'datax-ctrlm',
     "nuevo_nodeidlrba": 'LRBA_CO_DESA',
     "nuevo_cmdline_ambiente": '.dev',
@@ -19,6 +20,7 @@ CONFIGURACION_DESARROLLO = {
 
 CONFIGURACION_INT = {
     "letra_cambio": 'D',
+    "malla_letra_cambio": 'D',
     "nuevo_nodeid": 'datax-ctrlm',
     "nuevo_nodeidlrba": 'LRBA_CO_DESA',
     "nuevo_cmdline_ambiente": '.int',
@@ -31,6 +33,7 @@ CONFIGURACION_INT = {
 
 CONFIGURACION_AU = {
     "letra_cambio": 'C',
+    "malla_letra_cambio": 'C',
     "nuevo_nodeid": 'LCVWCOAXFT01S',
     "nuevo_nodeidlrba": 'LRBA_CO_QA',
     "nuevo_cmdline_ambiente": '.au',
@@ -43,6 +46,7 @@ CONFIGURACION_AU = {
 
 CONFIGURACION_CALIDAD = {
     "letra_cambio": 'C',
+    "malla_letra_cambio": 'C',
     "nuevo_nodeid": 'LCVWCOAXFT01S',
     "nuevo_nodeidlrba": 'LRBA_CO_QA',
     "nuevo_cmdline_ambiente": '.qa',
@@ -55,6 +59,7 @@ CONFIGURACION_CALIDAD = {
 
 CONFIGURACION_PRODUCCION = {
     "letra_cambio": 'P',
+    "malla_letra_cambio": 'D',
     "nuevo_nodeid": 'lcvpcoaxft00',
     "nuevo_nodeidlrba": 'LRBA_CO_PROD',
     "nuevo_cmdline_ambiente": '.pro',
@@ -82,7 +87,7 @@ CONTADORES = {
 PREFIJOS_GRANDES = ['CCUGH', 'CCBTQ', 'CCBGH', 'CCBGU', 'CCTSU', 'CCMOL', 'CCPAN', 'CCZXH', 'CCBNT', 'CCDNG', 'CMS01']
 PREFIJOS_PEQUENOS = ['CBTQ', 'CCOG']
 
-AMBIENTES = ["desarrollo", "int", "calidad", "au", "produccion"]
+AMBIENTES = ["dev", "int", "qa", "au", "pro"]
 
 PATRON_PREFIJOS_GRANDES = '|'.join(PREFIJOS_GRANDES)
 PATRON_PREFIJOS_PEQUENOS = '|'.join(PREFIJOS_PEQUENOS)
