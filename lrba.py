@@ -10,10 +10,11 @@ from config import CONTADORES, AMBIENTES, AMBIENTE_DESARROLLO, AMBIENTE_INT, AMB
 from logger_setup import setup_logger
 
 # Configuración de logger
-logger = setup_logger()
+logger, incidencias_logger = setup_logger(log_dir="log")
 
-# Lista para almacenar los mensajes de advertencia
+# Lista para almacenar los mensajes de advertencia o incidencias
 mensajes = []
+incidencias = []
 
 # Ruta al archivo de configuración
 config_file_path = 'config.py'
@@ -109,7 +110,7 @@ def configurar_correo():
                         break
     # Si alguno de los bloques tiene el correo vacío, pedir el correo
     if correo_a_guardar:
-        correo = input("Introduce tu correo para futuras notificaciones: ")
+        correo = input("Introduce tu correo para futuras ejecuciones: ")
         guardar_configuracion(lines, correo)
         logger.info("Correo guardado exitosamente.")
     else:
@@ -274,8 +275,10 @@ def modificar_jobname(jobname, letra_cambio, prefijos_grandes, prefijos_pequenos
     # Si el jobname comienza con uno de los prefijos pequeños, intentamos modificarlo en la posición 5.
     elif patron_prefijos_pequenos.match(jobname):
         return modificar_si_permitido(5) or jobname
-    # Si no se cumple ninguna de las condiciones anteriores, se devuelve el jobname original sin cambios.
-    return jobname
+    else:
+        incidencias_logger.warning(f"El JOBNAME no cumple con ninguna UUAA del script.")
+        # Si no se cumple ninguna de las condiciones anteriores, se devuelve el jobname original sin cambios.
+        return jobname
 
 # Función para cargar el XML
 def cargar_xml(archivo_xml):
@@ -335,6 +338,8 @@ def modificar_folder(root, nuevo_datacenter):
         # Modificar el atributo 'DATACENTER' del nodo 'FOLDER' con el nuevo valor
         folder.set(constants.DATACENTER, nuevo_datacenter)
         logger.debug(f'FOLDER modificado: DATACENTER="{nuevo_datacenter}"')
+    else:
+        incidencias_logger.warning(f"El xml no tiene etiquetas críticas para su ejecución(FOLDER//DATACENTER).")
 
 # Función para modificar NODEID
 def modificar_nodeid(job, conf):
@@ -365,6 +370,7 @@ def modificar_nodeid(job, conf):
         return True
     # Si el NODEID no está en ninguno de los nodos permitidos, registrar una advertencia
     else:
+        incidencias_logger.warning(f"No se modifico el NODEID por no cumplir con los nodos permitidos.")
         logger.warn(f"No se modifico el NODEID por no cumplir con los nodos permitidos.")
     return False
 
@@ -477,7 +483,7 @@ def modificar_condiciones(condiciones, letra_cambio, nuevo_condicion, patron_pre
                     condicion.set(constants.NAME, nuevo_name)
                     logger.debug(f'{condicion.tag} modificado: NAME="{name}" a "{nuevo_name}"')
             else:
-                print(f'No se encontró un patrón para {condicion.tag}: NAME="{name}"')
+                logger.warning(f'No se encontró un patrón para {condicion.tag}: NAME="{name}"')
 
 # Función para modificar QUANTITATIVE
 def modificar_quantitative(job, conf, ambiente, modificar_quantitative):
@@ -530,51 +536,30 @@ def actualizar_quantitative(quantitative, ambiente):
 
 def modificar_variable(variable, ambiente, modificar_odate, contadores):
     value = variable.get(constants.VALUE)
-    nuevo_value = value  # Inicializar el valor a modificar
-    
-    # Verifica si el VALUE comienza con COB o DOF
+    nuevo_value = value  # Iniciar nuevo valor
+    # Función para cambiar el prefijo según el tipo de valor y ambiente
+    def aplicar_prefijo(prefijos, longitud_corte):
+        return prefijos.get(ambiente, '') + value[longitud_corte:]
+    # Cambiar el prefijo basado en el valor inicial
     if value.startswith(tuple(constants.PREFIJOS_COB)):
-        # Cambia el prefijo en calidad y producción
-        if ambiente == constants.DESARROLLO:
-            nuevo_value = constants.PREFIJO_COBD_DESARROLLO + value[4:]
-        elif ambiente == constants.CALIDAD:  # Suponiendo que 'ambiente' es una variable que define el ambiente
-            nuevo_value = constants.PREFIJO_COBD_CALIDAD + value[4:]  # Cambia COB
-        elif ambiente == constants.AU:
-            nuevo_value = constants.PREFIJO_COBD_CALIDAD + value[4:]  # Cambia COB
-        elif ambiente == constants.INT:
-            nuevo_value = constants.PREFIJO_COBD_DESARROLLO + value[4:]  # Cambia COB                        
-        elif ambiente == constants.PRODUCCION:
-            nuevo_value = constants.PREFIJO_COBD_PRODUCCION + value[4:]  # Cambia COB
-
+        nuevo_value = aplicar_prefijo(constants.PREFIJOS_COB_LIST, 4)
     elif value.startswith(tuple(constants.PREFIJOS_OF)):
-        # Cambia el prefijo en calidad y producción
-        if ambiente == constants.DESARROLLO:
-            nuevo_value = constants.PREFIJO_DOF_DESARROLLO + value[3:]
-        elif ambiente == constants.CALIDAD:
-            nuevo_value = constants.PREFIJO_DOF_CALIDAD + value[3:]  # Cambia OF
-        elif ambiente == constants.AU:
-            nuevo_value = constants.PREFIJO_DOF_CALIDAD + value[4:]  # Cambia COB
-        elif ambiente == constants.INT:
-            nuevo_value = constants.PREFIJO_DOF_DESARROLLO + value[4:]  # Cambia COB         
-        elif ambiente == constants.PRODUCCION:
-            nuevo_value = constants.PREFIJO_DOF_PRODUCCION + value[3:]  # Cambia OF
-
-    # Verifica si VALUE contiene %%ODATE
-    if modificar_odate and '%%ODATE' in nuevo_value:
-        # Verifica de que no termina con %%ODATE
-        if not nuevo_value.endswith('%%ODATE'):
-            # Asegúrate de que tenga exactamente dos puntos después de %%ODATE
+        nuevo_value = aplicar_prefijo(constants.PREFIJOS_OF_LIST, 3)
+    # Función para modificar %%ODATE si se requiere
+    def modificar_odate_si_es_necesario():
+        nonlocal nuevo_value
+        if '%%ODATE' in nuevo_value and not nuevo_value.endswith('%%ODATE'):
             index_odate = nuevo_value.index('%%ODATE') + 8
-            if index_odate < len(nuevo_value) and nuevo_value[index_odate] != '.':
-                if nuevo_value[index_odate:index_odate + 2] != constants.VAR_DOBPOINT:  # Verifica que no haya ya dos puntos
-                    nuevo_value = nuevo_value.replace('%%ODATE', '%%ODATE..')  # Modifica para añadir los dos puntos
-                    incrementar_contador(contadores, constants.CONTADOR_ODATE)
-
-    # Asegura que no se agreguen más de dos puntos
-    if nuevo_value.count(constants.VAR_DOBPOINT) > 1:  # Si ya hay más de un par de puntos
-        nuevo_value = nuevo_value.replace(constants.VAR_DOBPOINT, '', nuevo_value.count(constants.VAR_DOBPOINT) - 1)  # Elimina los extras
-
-    # Actualiza el VALUE de la VARIABLE
+            if nuevo_value[index_odate:index_odate + 2] != constants.VAR_DOBPOINT:
+                nuevo_value = nuevo_value.replace('%%ODATE', '%%ODATE..')
+                incrementar_contador(contadores, constants.CONTADOR_ODATE)
+    # Modificar %%ODATE si está habilitado
+    if modificar_odate:
+        modificar_odate_si_es_necesario()
+    # Limitar a un solo par de puntos consecutivos
+    if nuevo_value.count(constants.VAR_DOBPOINT) > 1:
+        nuevo_value = nuevo_value.replace(constants.VAR_DOBPOINT, '', nuevo_value.count(constants.VAR_DOBPOINT) - 1)
+    # Actualizar el VALUE en la variable
     variable.set(constants.VALUE, nuevo_value)
     logger.debug(f'VARIABLE VALUE modificado de "{value}" a "{nuevo_value}"')
 

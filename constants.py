@@ -88,6 +88,22 @@ VAR_AU = '.au'
 VAR_QA = '.qa'
 VAR_PROD = '.pro'
 
+PREFIJOS_COB_LIST = {
+    DESARROLLO: PREFIJO_COBD_DESARROLLO,
+    CALIDAD: PREFIJO_COBD_CALIDAD,
+    AU: PREFIJO_COBD_CALIDAD,
+    INT: PREFIJO_COBD_DESARROLLO,
+    PRODUCCION: PREFIJO_COBD_PRODUCCION
+}
+
+PREFIJOS_OF_LIST = {
+    DESARROLLO: PREFIJO_DOF_DESARROLLO,
+    CALIDAD: PREFIJO_DOF_CALIDAD,
+    AU: PREFIJO_DOF_CALIDAD,
+    INT: PREFIJO_DOF_DESARROLLO,
+    PRODUCCION: PREFIJO_DOF_PRODUCCION
+} 
+
 AMB_PERMITIDO_LRBA = [
     VARC,
     VARD,
@@ -149,11 +165,11 @@ VAR_INDENT = "     "
 # Variables help
 EJEMPLO_USO_PRODUCCION = """
 Ejemplo de ejecución Produccion:
-py lrba.py --ambiente pro --archivo-xml CR-COCBGHDIA-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs D01,C02
+py lrba.py --ambiente pro --archivo-xml CR-COCBGHDIA-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs D01,C02 --dry-run
 """
 EJEMPLO_USO_CALIDAD = """
 Ejemplo de ejecución Calidad:
-py lrba.py --ambiente qa --archivo-xml CR-COCBGHDIAC-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs L01,D02
+py lrba.py --ambiente qa --archivo-xml CR-COCBGHDIAC-T03.xml --modificar-quantitative --modificar-domail --modificar-odate --modificar-jobs L01,D02 --dry-run
 """
 BIENVENIDA = "BIENVENIDO A LA TRANSFORMACIÓN DE MALLAS DE LRBA"
 DESCRIPTION = "Script para transformar archivos XML de Control-M a diferentes ambientes."
