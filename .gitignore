@@ -1,4 +1,6 @@
 __pycache__/
 *.pyc
 *-generate.xml
+*.xml
 log/script.log
+log/incidencias.log
