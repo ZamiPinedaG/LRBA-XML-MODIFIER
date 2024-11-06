@@ -1,9 +1,11 @@
 # lrba.py
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as MD
-import re
-import constants
 import argparse
+import constants
+import json
+import re
+import os
 from config import CONTADORES, AMBIENTES, AMBIENTE_DESARROLLO, AMBIENTE_INT, AMBIENTE_CALIDAD, AMBIENTE_AU, AMBIENTE_PRODUCCION, CONFIGURACION_DESARROLLO, CONFIGURACION_INT, CONFIGURACION_CALIDAD, CONFIGURACION_AU, CONFIGURACION_PRODUCCION, PREFIJOS_PEQUENOS, PREFIJOS_GRANDES ,PATRON_PREFIJOS_GRANDES, PATRON_PREFIJOS_PEQUENOS
 from logger_setup import setup_logger
 
@@ -12,6 +14,9 @@ logger = setup_logger()
 
 # Lista para almacenar los mensajes de advertencia
 mensajes = []
+
+# Ruta al archivo de configuración
+config_file_path = 'config.py'
 
 def incrementar_contador(contador_dict, key):
     """
@@ -31,6 +36,84 @@ def incrementar_contador(contador_dict, key):
         contador_dict[key] += 1
     else:
         logger.error(f"Contador '{key}' no existe.")
+        
+# Cargar la configuración de desarrollo.
+def cargar_configuracion():
+    with open(config_file_path, 'r') as file:
+        lines = file.readlines()
+    return lines
+
+# Guardar la configuración en el archivo
+def guardar_configuracion(lines, correo):
+    # Función para actualizar la configuración de correo en un bloque específico
+    def actualizar_configuracion(nombre_config):
+        start_index = None
+        end_index = None
+        for i, line in enumerate(lines):
+            if nombre_config in line:
+                start_index = i
+                # Encontrar el final de la definición de la configuración
+                for j in range(i+1, len(lines)):
+                    if lines[j].strip() == '}':  # Fin de la configuración
+                        end_index = j
+                        break
+                break  
+        # Si encontramos la configuración, actualizamos el campo 'domail_destino'
+        if start_index is not None and end_index is not None:
+            correo_actual = None
+            # Buscar si el campo 'domail_destino' está vacío en este bloque
+            for i in range(start_index, end_index):
+                if "domail_destino" in lines[i]:
+                    correo_actual = lines[i].split(":")[1].strip().strip('",')
+                    break
+            if not correo_actual:  # Si el correo está vacío
+                # Actualizar la línea que contiene 'domail_destino'
+                for i in range(start_index, end_index):
+                    if "domail_destino" in lines[i]:
+                        lines[i] = f"    \"domail_destino\": \"{correo}\",\n"
+                        break
+
+    # Actualizar solo los bloques específicos de configuración
+    actualizar_configuracion(constants.VAR_CONFIGURACION_DEV)
+    actualizar_configuracion(constants.VAR_CONFIGURACION_INT)
+
+    # Escribir el archivo nuevamente con los cambios
+    with open(config_file_path, 'w') as file:
+        file.writelines(lines)
+    logger.info(f"Correo actualizado en config.py para CONFIGURACION_DESARROLLO y CONFIGURACION_INT: {correo}")
+
+# Solicitar el correo si no está configurado
+def configurar_correo():
+    lines = cargar_configuracion()
+    correo_a_guardar = None  # Variable para determinar si algún bloque necesita actualización
+    # Revisar ambos bloques para ver si el correo está vacío
+    for nombre_config in [constants.VAR_CONFIGURACION_DEV, constants.VAR_CONFIGURACION_INT]:
+        start_index = None
+        end_index = None
+        for i, line in enumerate(lines):
+            if nombre_config in line:
+                start_index = i
+                # Encontrar el final de la configuración
+                for j in range(i + 1, len(lines)):
+                    if lines[j].strip() == '}':  # Fin de la configuración
+                        end_index = j
+                        break
+                break
+        # Verificar si 'domail_destino' está vacío en ese bloque
+        if start_index is not None and end_index is not None:
+            for i in range(start_index, end_index):
+                if "domail_destino" in lines[i]:
+                    correo_actual = lines[i].split(":")[1].strip().strip('",')
+                    if not correo_actual:  # Si el correo está vacío
+                        correo_a_guardar = True
+                        break
+    # Si alguno de los bloques tiene el correo vacío, pedir el correo
+    if correo_a_guardar:
+        correo = input("Introduce tu correo para futuras notificaciones: ")
+        guardar_configuracion(lines, correo)
+        logger.info("Correo guardado exitosamente.")
+    else:
+        logger.info("Correo ya configurado en ambos bloques.")
 
 def main():
     # Mostrar ejemplo de uso
@@ -536,4 +619,6 @@ def registrar_modificaciones(contadores):
         logger.warning(f'Total de QUANTITATIVE modificados: {contadores["quanm"]}')
           
 if __name__ == "__main__":
+    configurar_correo()
     main()
+    

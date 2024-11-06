@@ -1,4 +1,7 @@
 # config.py
+import json
+import os
+
 AMBIENTE_DESARROLLO = "dev"
 AMBIENTE_INT = "int"
 AMBIENTE_CALIDAD = "qa"
@@ -14,7 +17,7 @@ CONFIGURACION_DESARROLLO = {
     "nuevo_variable_ambiente": '.dev',
     "nuevo_datacenter": 'Ctrlm_Desarrollo',
     "nuevo_condicion": 'D',
-    "domail_destino": '', # En desarrollo poner su correo para pruebas
+    "domail_destino": "",
     "sub_app_ctrlm": '-CCR'
 }
 
@@ -27,7 +30,7 @@ CONFIGURACION_INT = {
     "nuevo_variable_ambiente": '.int',
     "nuevo_datacenter": 'Ctrlm_Desarrollo',
     "nuevo_condicion": 'D',
-    "domail_destino": '', # En desarrollo poner su correo para pruebas
+    "domail_destino": "",
     "sub_app_ctrlm": '-CCR'
 }
 
