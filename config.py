@@ -17,7 +17,7 @@ CONFIGURACION_DESARROLLO = {
     "nuevo_variable_ambiente": '.dev',
     "nuevo_datacenter": 'Ctrlm_Desarrollo',
     "nuevo_condicion": 'D',
-    "domail_destino": "zamiralejandro.pineda.contractor@bbva.com",
+    "domail_destino": "",
     "sub_app_ctrlm": '-CCR'
 }
 
@@ -30,7 +30,7 @@ CONFIGURACION_INT = {
     "nuevo_variable_ambiente": '.int',
     "nuevo_datacenter": 'Ctrlm_Desarrollo',
     "nuevo_condicion": 'D',
-    "domail_destino": "zamiralejandro.pineda.contractor@bbva.com",
+    "domail_destino": "",
     "sub_app_ctrlm": '-CCR'
 }
 
