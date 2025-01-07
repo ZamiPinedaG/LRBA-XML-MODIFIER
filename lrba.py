@@ -458,32 +458,39 @@ def modificar_condiciones(condiciones, letra_cambio, nuevo_condicion, patron_pre
             logger.debug(f'{condicion.tag} modificado: NAME="{name}" a "{nuevo_name}"')
         else:
             logger.debug(f'Entrando en ELSE para {condicion.tag}: NAME="{name}"')
-            # Buscamos los patrones de UUAA y modificamos en consecuencia
-            if re.match(r'^(' + patron_prefijos_grandes + ').*', name):  
-                partes = name.split(constants.VAR_TO)
-                if len(partes) == 2:
-                    parte_izquierda = partes[0]
-                    parte_derecha = partes[1]
-                    # Cambia el carácter en la posición deseada
-                    nuevo_nombre_izquierda = parte_izquierda[:6] + letra_cambio + parte_izquierda[7:]
-                    nuevo_nombre_derecha = parte_derecha[:6] + letra_cambio + parte_derecha[7:]
-                    nuevo_name = nuevo_nombre_izquierda + constants.VAR_TO + nuevo_nombre_derecha
-                    condicion.set(constants.NAME, nuevo_name)
-                    logger.debug(f'{condicion.tag} modificado: NAME="{name}" a "{nuevo_name}"')
+            # Dividimos el nombre en partes
+            partes = name.split(constants.VAR_TO)
+            if len(partes) == 2:
+                parte_izquierda, parte_derecha = partes
+                nuevo_nombre_izquierda = None
+                nuevo_nombre_derecha = None
 
-            elif re.match(r'^(' + patron_prefijos_pequeños + ').*', name):
-                partes = name.split(constants.VAR_TO)
-                if len(partes) == 2:
-                    parte_izquierda = partes[0]
-                    parte_derecha = partes[1]
-                    # Cambia el carácter en la posición deseada (un carácter menos)
+                # Validamos y modificamos parte_izquierda
+                if re.match(r'^(' + patron_prefijos_grandes + ').*', parte_izquierda):
+                    nuevo_nombre_izquierda = parte_izquierda[:6] + letra_cambio + parte_izquierda[7:]
+                elif re.match(r'^(' + patron_prefijos_pequeños + ').*', parte_izquierda):
                     nuevo_nombre_izquierda = parte_izquierda[:5] + letra_cambio + parte_izquierda[6:]
+                else:
+                    logger.warning(f'No se encontró un patrón para parte izquierda: "{parte_izquierda}"')
+
+                # Validamos y modificamos parte_derecha
+                if re.match(r'^(' + patron_prefijos_grandes + ').*', parte_derecha):
+                    nuevo_nombre_derecha = parte_derecha[:6] + letra_cambio + parte_derecha[7:]
+                elif re.match(r'^(' + patron_prefijos_pequeños + ').*', parte_derecha):
                     nuevo_nombre_derecha = parte_derecha[:5] + letra_cambio + parte_derecha[6:]
+                else:
+                    logger.warning(f'No se encontró un patrón para parte derecha: "{parte_derecha}"')
+
+                # Si ambas partes fueron modificadas, las unimos y actualizamos el nombre
+                if nuevo_nombre_izquierda and nuevo_nombre_derecha:
                     nuevo_name = nuevo_nombre_izquierda + constants.VAR_TO + nuevo_nombre_derecha
                     condicion.set(constants.NAME, nuevo_name)
                     logger.debug(f'{condicion.tag} modificado: NAME="{name}" a "{nuevo_name}"')
+                else:
+                    logger.warning(f'No se pudo modificar completamente: NAME="{name}"')
             else:
-                logger.warning(f'No se encontró un patrón para {condicion.tag}: NAME="{name}"')
+                logger.warning(f'El nombre no contiene el separador "{constants.VAR_TO}": NAME="{name}"')
+
 
 # Función para modificar QUANTITATIVE
 def modificar_quantitative(job, conf, ambiente, modificar_quantitative):
