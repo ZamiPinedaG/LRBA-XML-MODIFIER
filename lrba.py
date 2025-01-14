@@ -555,11 +555,19 @@ def modificar_variable(variable, ambiente, modificar_odate, contadores):
     # Función para modificar %%ODATE si se requiere
     def modificar_odate_si_es_necesario():
         nonlocal nuevo_value
-        if '%%ODATE' in nuevo_value and not nuevo_value.endswith('%%ODATE'):
-            index_odate = nuevo_value.index('%%ODATE') + 8
-            if nuevo_value[index_odate:index_odate + 2] != constants.VAR_DOBPOINT:
-                nuevo_value = nuevo_value.replace('%%ODATE', '%%ODATE..')
+        if '%%ODATE' in nuevo_value:
+            # Asegurar que %%ODATE esté seguido de exactamente dos puntos
+            nuevo_value = nuevo_value.replace('%%ODATE', '%%ODATE..')
+            
+            # Si hay más de dos puntos, recortar los excedentes
+            while '%%ODATE...' in nuevo_value:
+                nuevo_value = nuevo_value.replace('%%ODATE...', '%%ODATE..')
+            
+            # Incrementar el contador solo si hay un cambio en la cadena
+            if '%%ODATE..' in nuevo_value and nuevo_value.count('%%ODATE..') > 1:
                 incrementar_contador(contadores, constants.CONTADOR_ODATE)
+
+
     # Modificar %%ODATE si está habilitado
     if modificar_odate:
         modificar_odate_si_es_necesario()

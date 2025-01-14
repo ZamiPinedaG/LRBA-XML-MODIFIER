@@ -37,7 +37,7 @@ CONFIGURACION_INT = {
 CONFIGURACION_AU = {
     "letra_cambio": 'C',
     "malla_letra_cambio": 'C',
-    "nuevo_nodeid": 'LCVWCOAXFT01S',
+    "nuevo_nodeid": 'datax-ctrlm',
     "nuevo_nodeidlrba": 'LRBA_CO_QA',
     "nuevo_cmdline_ambiente": '.au',
     "nuevo_variable_ambiente": '.au',
@@ -50,7 +50,7 @@ CONFIGURACION_AU = {
 CONFIGURACION_CALIDAD = {
     "letra_cambio": 'C',
     "malla_letra_cambio": 'C',
-    "nuevo_nodeid": 'LCVWCOAXFT01S',
+    "nuevo_nodeid": 'datax-ctrlm',
     "nuevo_nodeidlrba": 'LRBA_CO_QA',
     "nuevo_cmdline_ambiente": '.qa',
     "nuevo_variable_ambiente": '.qa',
