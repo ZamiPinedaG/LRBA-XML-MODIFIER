@@ -556,15 +556,18 @@ def modificar_variable(variable, ambiente, modificar_odate, contadores):
     def modificar_odate_si_es_necesario():
         nonlocal nuevo_value
         if '%%ODATE' in nuevo_value:
-            # Asegurar que %%ODATE esté seguido de exactamente dos puntos
+            # Verificar la posición de %%ODATE y si hay caracteres adicionales
+            index_odate = nuevo_value.index('%%ODATE') + 8  # 8 = longitud de '%%ODATE'
+            if index_odate == len(nuevo_value) or nuevo_value[index_odate:].strip() == '':
+                # Si %%ODATE está al final y no hay caracteres adicionales, no hacer cambios
+                return
+            # Normalizar a exactamente dos puntos después de %%ODATE
             nuevo_value = nuevo_value.replace('%%ODATE', '%%ODATE..')
-            
-            # Si hay más de dos puntos, recortar los excedentes
+            # Recortar los puntos excedentes a dos
             while '%%ODATE...' in nuevo_value:
                 nuevo_value = nuevo_value.replace('%%ODATE...', '%%ODATE..')
-            
-            # Incrementar el contador solo si hay un cambio en la cadena
-            if '%%ODATE..' in nuevo_value and nuevo_value.count('%%ODATE..') > 1:
+            # Incrementar el contador si hubo un cambio en la cadena
+            if '%%ODATE..' in nuevo_value:
                 incrementar_contador(contadores, constants.CONTADOR_ODATE)
 
 
