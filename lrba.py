@@ -415,12 +415,16 @@ def modificar_domail_en_on(job, conf, ambiente, modificar_domail, parent_folder,
         else:
             # Si existen etiquetas ON, modificar las etiquetas DOMAIL dentro de ellas
             for on in on_tags:
-                for domail in on.findall(constants.DOMAIL):
-                    domail.set(constants.VAR_DEST, conf["domail_destino"])
-                    domail.set(constants.VAR_SUBJECT, subject)
-                    domail.set(constants.VAR_MESSAGE, message)
-                    incrementar_contador(CONTADORES, constants.CONTADOR_DOMAIL_M)
-                    logger.debug(f'DOMAIL modificado: DEST="{domail.get("DEST")}", SUBJECT="{subject}", MESSAGE="{message}"')
+                # Validar si la etiqueta ON tiene el atributo CODE igual a "NOTOK"
+                if on.get("CODE") == "NOTOK":
+                    for domail in on.findall(constants.DOMAIL):
+                        domail.set(constants.VAR_DEST, conf["domail_destino"])
+                        domail.set(constants.VAR_SUBJECT, subject)
+                        domail.set(constants.VAR_MESSAGE, message)
+                        incrementar_contador(CONTADORES, constants.CONTADOR_DOMAIL_M)
+                        logger.debug(f'DOMAIL modificado: DEST="{domail.get("DEST")}", SUBJECT="{subject}", MESSAGE="{message}"')
+                else:
+                    incidencias_logger.info(f'Etiqueta ON encontrada, pero CODE no es "NOTOK": {ET.tostring(on).decode()}')
 
 def crear_domail(ambiente, conf, subject, message):
     on_element = ET.Element(constants.ON, {
@@ -434,7 +438,7 @@ def crear_domail(ambiente, conf, subject, message):
             "DEST": conf,
             "SUBJECT": subject,
             "MESSAGE": message,
-            "ATTACH_SYSOUT": constants.VAR_Y
+            "ATTACH_SYSOUT": constants.VAR_D
         })
     elif ambiente == constants.PRODUCCION:
         element = ET.Element(constants.DOMAIL, {
@@ -442,7 +446,7 @@ def crear_domail(ambiente, conf, subject, message):
             "DEST": conf,
             "SUBJECT": subject,
             "MESSAGE": message,
-            "ATTACH_SYSOUT": constants.VAR_Y
+            "ATTACH_SYSOUT": constants.VAR_D
         })
     # Agregar QUANTITATIVE a ON
     on_element.append(element)
@@ -452,6 +456,9 @@ def crear_domail(ambiente, conf, subject, message):
 def modificar_condiciones(condiciones, letra_cambio, nuevo_condicion, patron_prefijos_grandes, patron_prefijos_pequeños):
     for condicion in condiciones:
         name = condicion.get(constants.NAME)
+        # Nueva validación: verificar si el nombre tiene menos de 17 caracteres
+        if name and len(name) < 17:
+            incidencias_logger.warning(f'La condición "{name}" tiene menos de 17 caracteres.')
         if name and name.startswith(constants.VAR_COXCRX) and len(name) > 8:
             nuevo_name = name[:7] + nuevo_condicion + name[8:]  # Modificar el carácter en la posición 7
             condicion.set(constants.NAME, nuevo_name)
